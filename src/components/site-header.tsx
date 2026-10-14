@@ -18,7 +18,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
       {/* Faixa superior discreta */}
-      <div className="border-b border-border bg-secondary">
+      <div className="border-b border-border bg-primary text-primary-foreground">
         <p className="eyebrow py-2 text-center">
           Semijoias delicadas para todos os momentos
         </p>
@@ -29,7 +29,7 @@ export function SiteHeader() {
         <button
           type="button"
           aria-label="Abrir menu"
-          className="text-foreground transition-colors hover:text-gold lg:hidden"
+          className="text-foreground transition-colors hover:opacity-60 lg:hidden"
         >
           <Menu className="h-5 w-5" strokeWidth={1.5} />
         </button>
@@ -43,27 +43,27 @@ export function SiteHeader() {
             height={1024}
             className="h-12 w-12 object-contain sm:h-14 sm:w-14"
           />
-          <span className="hidden font-serif text-xl leading-tight tracking-wide sm:block">
+          <span className="hidden text-base font-semibold uppercase leading-tight tracking-[0.2em] sm:block">
             Beleza em Detalhes
           </span>
         </Link>
 
         {/* Ações */}
         <div className="flex items-center gap-4 sm:gap-5">
-          <button type="button" aria-label="Buscar" className="text-foreground transition-colors hover:text-gold">
+          <button type="button" aria-label="Buscar" className="text-foreground transition-colors hover:opacity-60">
             <Search className="h-5 w-5" strokeWidth={1.5} />
           </button>
-          <button type="button" aria-label="Favoritos" className="text-foreground transition-colors hover:text-gold">
+          <button type="button" aria-label="Favoritos" className="text-foreground transition-colors hover:opacity-60">
             <Heart className="h-5 w-5" strokeWidth={1.5} />
           </button>
           <button
             type="button"
             aria-label="Minha conta"
-            className="hidden text-foreground transition-colors hover:text-gold sm:block"
+            className="hidden text-foreground transition-colors hover:opacity-60 sm:block"
           >
             <User className="h-5 w-5" strokeWidth={1.5} />
           </button>
-          <button type="button" aria-label="Carrinho" className="text-foreground transition-colors hover:text-gold">
+          <button type="button" aria-label="Carrinho" className="text-foreground transition-colors hover:opacity-60">
             <ShoppingBag className="h-5 w-5" strokeWidth={1.5} />
           </button>
         </div>
@@ -76,7 +76,7 @@ export function SiteHeader() {
             <li key={item.label}>
               <Link
                 to={item.to}
-                className="text-[0.8125rem] font-normal uppercase tracking-[0.18em] text-foreground/80 transition-colors hover:text-gold"
+                className="text-[0.8125rem] font-normal uppercase tracking-[0.18em] text-foreground/80 transition-colors hover:opacity-60"
               >
                 {item.label}
               </Link>
