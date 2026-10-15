@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FavoritosRouteImport } from './routes/favoritos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FavoritosRoute = FavoritosRouteImport.update({
@@ -44,6 +50,7 @@ const ProdutoSlugRoute = ProdutoSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/faq': typeof FaqRoute
   '/favoritos': typeof FavoritosRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/produto/$slug': typeof ProdutoSlugRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/faq': typeof FaqRoute
   '/favoritos': typeof FavoritosRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/produto/$slug': typeof ProdutoSlugRoute
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/faq': typeof FaqRoute
   '/favoritos': typeof FavoritosRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/produto/$slug': typeof ProdutoSlugRoute
@@ -66,13 +75,25 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/admin' | '/favoritos' | '/categoria/$slug' | '/produto/$slug'
+    | '/'
+    | '/admin'
+    | '/faq'
+    | '/favoritos'
+    | '/categoria/$slug'
+    | '/produto/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/favoritos' | '/categoria/$slug' | '/produto/$slug'
+  to:
+    | '/'
+    | '/admin'
+    | '/faq'
+    | '/favoritos'
+    | '/categoria/$slug'
+    | '/produto/$slug'
   id:
     | '__root__'
     | '/'
     | '/admin'
+    | '/faq'
     | '/favoritos'
     | '/categoria/$slug'
     | '/produto/$slug'
@@ -81,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  FaqRoute: typeof FaqRoute
   FavoritosRoute: typeof FavoritosRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
@@ -100,6 +122,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/favoritos': {
@@ -129,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  FaqRoute: FaqRoute,
   FavoritosRoute: FavoritosRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
