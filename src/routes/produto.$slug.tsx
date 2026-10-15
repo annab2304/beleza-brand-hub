@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Heart, Minus, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -39,7 +39,6 @@ function ProductPage() {
   const { slug } = Route.useParams();
   const { data: p } = useQuery(productQuery(slug));
   const { addToCart, setCartOpen, toggleFavorite, isFavorite } = useStore();
-  const navigate = useNavigate();
   const [sel, setSel] = useState<(string | null)[]>([null, null, null]);
   const [qty, setQty] = useState(1);
   const [imgIdx, setImgIdx] = useState(0);
@@ -68,12 +67,11 @@ function ProductPage() {
   const isAvailable = (i: number, val: string) =>
     p.variants.some((v) => v[keys[i]] === val && keys.every((k, j) => j === i || j > i || !required[j] || !sel[j] || v[k] === sel[j]));
 
-  const gallery = useMemo(() => {
-    const g = [...p.images];
-    if (variant?.image_url && !g.includes(variant.image_url)) g.unshift(variant.image_url);
-    return g;
-  }, [p, variant?.image_url]);
-  const shown = variant?.image_url && imgIdx === 0 ? variant.image_url : gallery[imgIdx] ?? gallery[0];
+  const isAvailableAfter = (j: number, s: (string | null)[], i: number, val: string) =>
+    !s[j] || p.variants.some((v) => v[keys[i]] === val && v[keys[j]] === s[j]);
+  const gallery = [...p.images];
+  if (variant?.image_url && !gallery.includes(variant.image_url)) gallery.unshift(variant.image_url);
+  const shown = gallery[imgIdx] ?? gallery[0];
 
   const price = variant?.price ?? Math.min(...p.variants.map((v) => v.price));
   const fav = isFavorite(p.id);
@@ -148,7 +146,7 @@ function ProductPage() {
                             key={val}
                             type="button"
                             disabled={!ok}
-                            onClick={() => { setSel((s) => s.map((x, j) => (j === i ? val : j > i ? null : x))); setImgIdx(0); }}
+                            onClick={() => { setSel((s) => s.map((x, j) => (j === i ? val : j > i && !isAvailableAfter(j, s, i, val) ? null : x))); setImgIdx(0); }}
                             className={cn(
                               "min-w-12 border px-4 py-2.5 text-sm transition-all",
                               sel[i] === val ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
@@ -197,13 +195,13 @@ function ProductPage() {
           </div>
         </div>
       </div>
-      {p.category && <Related category={p.category.slug} exclude={p.id} onNav={() => navigate({ to: "." })} />}
+      {p.category && <Related category={p.category.slug} exclude={p.id} />}
       <SiteFooter />
     </div>
   );
 }
 
-function Related({ category, exclude }: { category: string; exclude: string; onNav: () => void }) {
+function Related({ category, exclude }: { category: string; exclude: string }) {
   const q = useQuery(productsQuery({ category, pageSize: 5 }));
   const items = q.data?.items.filter((x) => x.id !== exclude).slice(0, 4) ?? [];
   if (!items.length) return null;
