@@ -9,13 +9,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { productsQuery, type ListParams } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 
-type Search = { busca?: string; ordem?: "recentes" | "nome"; pagina?: number };
+type Search = { busca?: string | undefined; ordem?: "recentes" | "nome" | undefined; pagina?: number | undefined };
 
 export const Route = createFileRoute("/categoria/$slug")({
   validateSearch: (s: Record<string, unknown>): Search => ({
-    busca: typeof s.busca === "string" && s.busca ? s.busca : undefined,
-    ordem: s.ordem === "nome" ? "nome" : undefined,
-    pagina: Number(s.pagina) > 1 ? Number(s.pagina) : undefined,
+    busca: typeof s["busca"] === "string" && s["busca"] ? s["busca"] : undefined,
+    ordem: s["ordem"] === "nome" ? "nome" : undefined,
+    pagina: Number(s["pagina"]) > 1 ? Number(s["pagina"]) : undefined,
   }),
   head: ({ params }) => {
     const label = CATEGORY_LABELS[params.slug] ?? "Todas as semijoias";

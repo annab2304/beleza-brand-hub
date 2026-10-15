@@ -30,7 +30,7 @@ export const Route = createFileRoute("/produto/$slug")({
       ],
     };
   },
-  errorComponent: ({ error }) => <div className="p-10 text-center">Não foi possível carregar: {error.message}</div>,
+  errorComponent: ({ error }) => <div className="p-10 text-center">Não foi possível carregar: {error instanceof Error ? error.message : String(error)}</div>,
   notFoundComponent: () => <div className="p-10 text-center">Produto não encontrado.</div>,
   component: ProductPage,
 });
@@ -54,7 +54,7 @@ function ProductPage() {
     if (!p) return;
     // pré-seleciona opções que têm um único valor e a primeira variante
     const first = p.variants[0];
-    setSel(keys.map((k, i) => (values[i].length === 1 ? values[i][0] : values[i].length && i === 0 ? (first?.[k] ?? null) : null)));
+    setSel(keys.map((k, i) => { const vs = values[i] ?? []; return vs.length === 1 ? (vs[0] ?? null) : vs.length && i === 0 ? (first?.[k] ?? null) : null; }));
     setImgIdx(0);
     setQty(1);
   }, [p?.id]);
@@ -62,13 +62,14 @@ function ProductPage() {
   if (!p) return null;
 
   const required = values.map((v) => v.length > 0);
+  const K = (i: number) => keys[i] as (typeof keys)[number];
   const variant = p.variants.find((v) => keys.every((k, i) => !required[i] || v[k] === sel[i]));
   const complete = required.every((r, i) => !r || sel[i]);
   const isAvailable = (i: number, val: string) =>
-    p.variants.some((v) => v[keys[i]] === val && keys.every((k, j) => j === i || j > i || !required[j] || !sel[j] || v[k] === sel[j]));
+    p.variants.some((v) => v[K(i)] === val && keys.every((k, j) => j === i || j > i || !required[j] || !sel[j] || v[k] === sel[j]));
 
   const isAvailableAfter = (j: number, s: (string | null)[], i: number, val: string) =>
-    !s[j] || p.variants.some((v) => v[keys[i]] === val && v[keys[j]] === s[j]);
+    !s[j] || p.variants.some((v) => v[K(i)] === val && v[K(j)] === s[j]);
   const gallery = [...p.images];
   if (variant?.image_url && !gallery.includes(variant.image_url)) gallery.unshift(variant.image_url);
   const shown = gallery[imgIdx] ?? gallery[0];
@@ -133,13 +134,13 @@ function ProductPage() {
 
             <div className="mt-8 space-y-6">
               {keys.map((_, i) =>
-                values[i].length ? (
+                values[i]?.length ? (
                   <div key={i}>
                     <p className="mb-3 text-xs uppercase tracking-[0.18em]">
                       {optNames[i] ?? "Opção"}: <span className="text-muted-foreground normal-case tracking-normal">{sel[i] ?? "selecione"}</span>
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {values[i].map((val) => {
+                      {(values[i] ?? []).map((val) => {
                         const ok = isAvailable(i, val);
                         return (
                           <button

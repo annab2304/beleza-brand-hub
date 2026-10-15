@@ -11,7 +11,7 @@ export function SiteFooter() {
         <div>
           <p className="text-[0.62rem] uppercase tracking-[0.25em] text-primary-foreground/50">Loja</p>
           <ul className="mt-4 space-y-2 text-sm">
-            {[["novidades", "Novidades"], ["mais-vendidos", "Mais vendidos"], ["conjuntos", "Conjuntos"], ["berloques", "Berloques"]].map(([s, l]) => (
+            {[["novidades", "Novidades"], ["mais-vendidos", "Mais vendidos"], ["conjuntos", "Conjuntos"], ["berloques", "Berloques"]].map(([s, l]) => s && (
               <li key={s}><Link to="/categoria/$slug" params={{ slug: s }} className="text-primary-foreground/80 hover:text-primary-foreground">{l}</Link></li>
             ))}
           </ul>
@@ -19,7 +19,7 @@ export function SiteFooter() {
         <div>
           <p className="text-[0.62rem] uppercase tracking-[0.25em] text-primary-foreground/50">Categorias</p>
           <ul className="mt-4 space-y-2 text-sm">
-            {[["brincos", "Brincos"], ["colares", "Colares"], ["pulseiras", "Pulseiras"], ["aneis", "Anéis"]].map(([s, l]) => (
+            {[["brincos", "Brincos"], ["colares", "Colares"], ["pulseiras", "Pulseiras"], ["aneis", "Anéis"]].map(([s, l]) => s && (
               <li key={s}><Link to="/categoria/$slug" params={{ slug: s }} className="text-primary-foreground/80 hover:text-primary-foreground">{l}</Link></li>
             ))}
           </ul>

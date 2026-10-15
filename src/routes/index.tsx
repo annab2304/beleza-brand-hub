@@ -29,12 +29,12 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-function Grid({ items, loading, n = 4 }: { items?: ProductCardData[]; loading: boolean; n?: number }) {
+function Grid({ items, loading, n = 4 }: { items?: ProductCardData[] | undefined; loading: boolean; n?: number }) {
   if (loading) return <>{Array.from({ length: n }).map((_, i) => <ProductCardSkeleton key={i} />)}</>;
   return <>{items?.map((p) => <ProductCard key={p.id} p={p} />)}</>;
 }
 
-function SectionHead({ eyebrow, title, script, to }: { eyebrow: string; title: string; script?: string; to?: string }) {
+function SectionHead({ eyebrow, title, script, to }: { eyebrow: string; title: string; script?: string | undefined; to?: string | undefined }) {
   return (
     <div className="mb-7 flex items-end justify-between gap-4 sm:mb-10">
       <div>
@@ -262,7 +262,7 @@ function Index() {
             className="mt-8 flex flex-col gap-3 sm:flex-row"
             onSubmit={(e) => {
               e.preventDefault();
-              if (!email.includes("@")) return toast.error("Digite um e-mail válido");
+              if (!email.includes("@")) { toast.error("Digite um e-mail válido"); return; }
               toast.success("Obrigada! Você receberá nossas novidades.");
               setEmail("");
             }}

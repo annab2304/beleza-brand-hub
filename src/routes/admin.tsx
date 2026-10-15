@@ -25,7 +25,7 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminPage() {
-  const [session, setSession] = useState<{ userId: string; email?: string } | null | undefined>(undefined);
+  const [session, setSession] = useState<{ userId: string; email?: string | undefined } | null | undefined>(undefined);
   useEffect(() => {
     const sync = async () => {
       const { data } = await supabase.auth.getUser();
@@ -73,7 +73,7 @@ function Login() {
         ? await supabase.auth.signInWithPassword({ email, password })
         : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/admin` } });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     if (mode === "up" && !data.session) toast.success("Conta criada! Confirme pelo link enviado ao seu e-mail.");
   };
   return (
@@ -107,7 +107,7 @@ type AdminProduct = {
   product_variants: AdminVariant[];
 };
 
-function Dashboard({ email }: { email?: string }) {
+function Dashboard({ email }: { email?: string | undefined }) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -149,13 +149,13 @@ function Dashboard({ email }: { email?: string }) {
 
   const setStock = async (id: string, v: number) => {
     const { error } = await supabase.from("product_variants").update({ own_stock: v }).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Estoque próprio atualizado");
     qc.invalidateQueries({ queryKey: ["admin-products"] });
   };
   const setPrice = async (id: string, v: number) => {
     const { error } = await supabase.from("product_variants").update({ price: v }).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Preço atualizado");
     qc.invalidateQueries({ queryKey: ["admin-products"] });
   };

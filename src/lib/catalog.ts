@@ -41,12 +41,12 @@ function toCard(r: Raw): ProductCardData {
 }
 
 export type ListParams = {
-  category?: string;
-  flag?: "new" | "bestseller";
-  search?: string;
-  sort?: "recentes" | "nome";
-  page?: number;
-  pageSize?: number;
+  category?: string | undefined;
+  flag?: "new" | "bestseller" | undefined;
+  search?: string | undefined;
+  sort?: "recentes" | "nome" | undefined;
+  page?: number | undefined;
+  pageSize?: number | undefined;
 };
 
 export async function fetchProducts(p: ListParams) {
