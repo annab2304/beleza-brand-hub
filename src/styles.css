@@ -59,6 +59,10 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --font-serif: "Cormorant Garamond", Georgia, serif;
   --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-script: "Pinyon Script", cursive;
+  --color-rose: var(--rose);
+  --color-cafe: var(--cafe);
+  --color-ivory: var(--ivory);
 }
 
 :root {
@@ -87,6 +91,9 @@
   --gold: oklch(0.7 0.09 80);
   --nude: oklch(0.87 0.03 70);
   --cream: oklch(0.965 0.015 85);
+  --rose: oklch(0.78 0.045 30);
+  --cafe: oklch(0.32 0.03 50);
+  --ivory: oklch(0.982 0.01 85);
   --chart-1: oklch(0.72 0 0);
   --chart-2: oklch(0.6 0 0);
   --chart-3: oklch(0.4 0 0);
@@ -199,4 +206,12 @@
   .link-underline:hover::after { transform: scaleX(.4); }
   .no-scrollbar { scrollbar-width: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
+@layer components {
+  .script { font-family: var(--font-script); font-weight: 400; letter-spacing: 0; text-transform: none; }
+  .reveal { animation: reveal .9s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes reveal { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .skeleton { background: linear-gradient(90deg, var(--color-muted), var(--color-cream), var(--color-muted)); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 }
