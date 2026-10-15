@@ -20,6 +20,7 @@ type Store = {
   addToCart: (item: CartItem) => void;
   updateQty: (variantId: string, qty: number) => void;
   removeItem: (variantId: string) => void;
+  clearCart: () => void;
   toggleFavorite: (productId: string) => void;
   isFavorite: (productId: string) => boolean;
   cartCount: number;
@@ -63,6 +64,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }),
     updateQty: (id, qty) => setCart((c) => c.map((i) => (i.variant_id === id ? { ...i, quantity: Math.max(1, qty) } : i))),
     removeItem: (id) => setCart((c) => c.filter((i) => i.variant_id !== id)),
+    clearCart: () => setCart([]),
     toggleFavorite: (id) => setFavorites((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id])),
     isFavorite: (id) => favorites.includes(id),
     cartCount: cart.reduce((s, i) => s + i.quantity, 0),

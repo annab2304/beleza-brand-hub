@@ -66,7 +66,7 @@ export function SiteHeader() {
             <button type="button" aria-label="Buscar" onClick={() => setSearchOpen((v) => !v)} className="lg:hidden">
               <Search className="h-5 w-5" strokeWidth={1.25} />
             </button>
-            <Link to="/admin" aria-label="Minha conta" className="hidden transition-opacity hover:opacity-60 sm:block">
+            <Link to="/minha-conta" aria-label="Minha conta" className="hidden transition-opacity hover:opacity-60 sm:block">
               <User className="h-5 w-5" strokeWidth={1.25} />
             </Link>
             <Link to="/favoritos" aria-label="Favoritos" className="relative transition-opacity hover:opacity-60">
@@ -116,6 +116,9 @@ export function SiteHeader() {
                 <Link to="/categoria/$slug" params={{ slug: n.slug }} onClick={() => setOpen(false)} className="block py-4 font-serif text-2xl">{n.label}</Link>
               </li>
             ))}
+            <li className="border-b border-border">
+              <Link to="/minha-conta" onClick={() => setOpen(false)} className="block py-4 text-sm uppercase tracking-[0.2em]">Minha conta e pedidos</Link>
+            </li>
             <li className="border-b border-border">
               <Link to="/favoritos" onClick={() => setOpen(false)} className="block py-4 text-sm uppercase tracking-[0.2em]">Favoritos</Link>
             </li>

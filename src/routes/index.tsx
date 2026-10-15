@@ -12,6 +12,7 @@ import conjuntosImg from "@/assets/cat-conjuntos.jpg";
 import { ProductCard, ProductCardSkeleton } from "@/components/product-card";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/contact";
 import { categoriesQuery, productsQuery, type ProductCardData } from "@/lib/catalog";
 import { toast } from "sonner";
 
@@ -236,13 +237,13 @@ function Index() {
       {/* INSTAGRAM */}
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:py-20">
         <div className="mb-8 text-center">
-          <p className="eyebrow">@belezaemdetalhes</p>
+          <p className="eyebrow">@{INSTAGRAM_HANDLE}</p>
           <h2 className="mt-2 text-3xl sm:text-4xl">Siga a <span className="script text-cafe">Beleza em Detalhes</span></h2>
         </div>
         <ul className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:grid-cols-6">
           {(insta.data?.items ?? []).map((p) => (
             <li key={p.id}>
-              <a href="https://instagram.com/belezaemdetalhes" target="_blank" rel="noreferrer" className="group relative block aspect-square overflow-hidden bg-cream">
+              <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer" className="group relative block aspect-square overflow-hidden bg-cream">
                 <img src={p.images[0]} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                 <span className="absolute inset-0 flex items-center justify-center bg-cafe/0 text-primary-foreground opacity-0 transition-all group-hover:bg-cafe/30 group-hover:opacity-100">
                   <Instagram className="h-5 w-5" strokeWidth={1.25} />

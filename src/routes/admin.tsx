@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import logoBd from "@/assets/logo-bd.png";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, clean } from "@/lib/catalog";
+import { formatOrderDate, ORDER_STATUS_LABEL, ORDER_STATUSES, parseOptions, PAYMENT_STATUS_LABEL } from "@/lib/orders";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -112,7 +113,8 @@ function Dashboard({ email }: { email?: string | undefined }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState<string | null>(null);
-  const [tab, setTab] = useState<"produtos" | "problemas">("produtos");
+  const [tab, setTab] = useState<"produtos" | "pedidos" | "problemas">("produtos");
+  const [openOrder, setOpenOrder] = useState<string | null>(null);
   const size = 30;
 
   const stats = useQuery({
@@ -146,6 +148,26 @@ function Dashboard({ email }: { email?: string | undefined }) {
     enabled: tab === "problemas",
     queryFn: async () => (await supabase.from("import_issues").select("*").order("row_number")).data ?? [],
   });
+
+  const orders = useQuery({
+    queryKey: ["admin-orders"],
+    enabled: tab === "pedidos",
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id,order_number,created_at,customer_name,customer_phone,email,shipping_address,status,payment_status,total,order_items(id,sku,name,options,quantity,unit_price)")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+  const setOrderStatus = async (id: string, status: string) => {
+    const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pedido atualizado");
+    qc.invalidateQueries({ queryKey: ["admin-orders"] });
+  };
 
   const setStock = async (id: string, v: number) => {
     const { error } = await supabase.from("product_variants").update({ own_stock: v }).eq("id", id);
@@ -186,12 +208,46 @@ function Dashboard({ email }: { email?: string | undefined }) {
         </div>
 
         <div className="mt-8 flex gap-6 border-b border-border text-sm">
-          {(["produtos", "problemas"] as const).map((t) => (
+          {(["produtos", "pedidos", "problemas"] as const).map((t) => (
             <button key={t} type="button" onClick={() => setTab(t)} className={`pb-3 capitalize ${tab === t ? "border-b-2 border-foreground font-medium" : "text-muted-foreground"}`}>{t}</button>
           ))}
         </div>
 
-        {tab === "problemas" ? (
+        {tab === "pedidos" ? (
+          <ul className="mt-6 divide-y divide-border border border-border">
+            {orders.isLoading && <li className="p-6 text-sm text-muted-foreground">Carregando…</li>}
+            {orders.isError && <li className="p-6 text-sm text-muted-foreground">Não foi possível carregar os pedidos (a migração 0001_orders já foi aplicada?).</li>}
+            {orders.data?.length === 0 && <li className="p-6 text-sm text-muted-foreground">Nenhum pedido ainda.</li>}
+            {orders.data?.map((o) => {
+              const a = (o.shipping_address ?? {}) as Record<string, string>;
+              return (
+                <li key={o.id}>
+                  <button type="button" onClick={() => setOpenOrder(openOrder === o.id ? null : o.id)} className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-left hover:bg-muted/50">
+                    <span className="text-sm"><span className="font-medium">#{o.order_number}</span> · {o.customer_name}</span>
+                    <span className="text-xs text-muted-foreground">{formatOrderDate(o.created_at)} · {ORDER_STATUS_LABEL[o.status] ?? o.status} · pagamento {PAYMENT_STATUS_LABEL[o.payment_status] ?? o.payment_status} · {brl(Number(o.total))}</span>
+                  </button>
+                  {openOrder === o.id && (
+                    <div className="space-y-3 bg-muted/30 p-4 text-sm">
+                      <p>{o.email} · {o.customer_phone ?? "sem telefone"}</p>
+                      <p className="text-muted-foreground">{a["street"]}, {a["number"]}{a["complement"] ? ` — ${a["complement"]}` : ""} · {a["neighborhood"]} · {a["city"]}/{a["state"]} · CEP {a["cep"]}</p>
+                      <ul className="space-y-1">
+                        {o.order_items.map((i) => (
+                          <li key={i.id}>{i.quantity}× {clean(i.name)} <span className="text-xs text-muted-foreground">({parseOptions(i.options).map((x) => x.value).join(" / ")}) · SKU {i.sku} · {brl(Number(i.unit_price))}</span></li>
+                        ))}
+                      </ul>
+                      <label className="flex items-center gap-2 text-xs">
+                        Andamento:
+                        <select value={o.status} onChange={(e) => setOrderStatus(o.id, e.target.value)} className="border border-border bg-background px-2 py-1">
+                          {ORDER_STATUSES.map((st) => <option key={st} value={st}>{ORDER_STATUS_LABEL[st]}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        ) : tab === "problemas" ? (
           <table className="mt-6 w-full text-left text-sm">
             <thead className="text-xs text-muted-foreground"><tr><th className="py-2">Linha</th><th>SKU</th><th>Produto</th><th>Problema</th></tr></thead>
             <tbody>

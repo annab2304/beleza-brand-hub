@@ -24,3 +24,31 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Pagamentos (Mercado Pago) e pedidos
+
+A loja usa o **Checkout Pro** do Mercado Pago: a cliente paga no ambiente do Mercado Pago e a loja nunca vê nem guarda dados de cartão.
+
+### Segredos necessários (nunca colocar no código)
+
+Configure como *secrets* do projeto (Lovable Cloud → Secrets) ou como variáveis de ambiente do servidor:
+
+| Variável | Obrigatória | Para quê |
+| --- | --- | --- |
+| `MERCADOPAGO_ACCESS_TOKEN` | sim | Access Token da aplicação no Mercado Pago (use o de **teste** até validar tudo) |
+| `MERCADOPAGO_WEBHOOK_SECRET` | recomendada | "Assinatura secreta" do webhook, para validar os avisos |
+| `SITE_URL` | opcional | Endereço público da loja (ex.: `https://www.seudominio.com.br`). Se vazio, usa o endereço de onde a cliente comprou |
+
+### Webhook
+
+No painel do Mercado Pago (Suas integrações → Webhooks), cadastre o evento **Pagamentos** apontando para:
+
+`https://SEU-SITE/api/mercadopago/webhook`
+
+### Banco de dados
+
+A migração `drizzle/migrations/0001_orders.sql` cria as tabelas `orders` e `order_items` (com RLS: a cliente só enxerga os próprios pedidos) e a função `mark_order_paid`, que confirma o pagamento uma única vez e baixa o `own_stock`. Ela precisa ser aplicada no banco antes de usar o checkout.
+
+### Contato
+
+Número do WhatsApp e Instagram ficam em `src/lib/contact.ts`.

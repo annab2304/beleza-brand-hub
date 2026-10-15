@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL, WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/contact";
 import {
   Accordion,
   AccordionContent,
@@ -110,7 +111,7 @@ function FaqPage() {
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-center text-sm leading-relaxed text-muted-foreground">
           Reunimos aqui as perguntas mais comuns sobre nossas semijoias, pedidos e entregas.
-          Não encontrou sua resposta? Fale com a gente pelo Instagram.
+          Não encontrou sua resposta? Fale com a gente pelo WhatsApp ou pelo Instagram.
         </p>
 
         <div className="mt-12 space-y-12">
@@ -137,14 +138,23 @@ function FaqPage() {
         <div className="mt-16 border border-border bg-cream px-6 py-10 text-center">
           <p className="script text-3xl text-cafe">ainda com dúvida?</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Chame a gente no Instagram{" "}
+            Chame a gente no WhatsApp{" "}
             <a
-              href="https://instagram.com/belezaemdetalhes"
+              href={whatsappUrl("Olá! Tenho uma dúvida.")}
               target="_blank"
               rel="noreferrer"
               className="font-medium text-foreground underline underline-offset-4"
             >
-              @belezaemdetalhes
+              {WHATSAPP_DISPLAY}
+            </a>{" "}
+            ou no Instagram{" "}
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-foreground underline underline-offset-4"
+            >
+              @{INSTAGRAM_HANDLE}
             </a>
           </p>
           <Link to="/" className="btn-primary mt-6">

@@ -53,7 +53,7 @@ export function CartDrawer() {
                 <span className="font-medium">{brl(subtotal)}</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">Frete calculado na finalização.</p>
-              <button type="button" className="btn-primary mt-5 w-full">Finalizar compra</button>
+              <Link to="/checkout" onClick={() => setCartOpen(false)} className="btn-primary mt-5 w-full text-center">Finalizar compra</Link>
             </div>
           </>
         )}

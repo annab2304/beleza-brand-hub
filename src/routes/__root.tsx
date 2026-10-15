@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { StoreProvider } from "@/lib/store";
 import { CartDrawer } from "@/components/cart-drawer";
+import { WhatsappButton } from "@/components/whatsapp-button";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -144,6 +145,7 @@ function RootComponent() {
       <StoreProvider>
         <Outlet />
         <CartDrawer />
+        <WhatsappButton />
         <Toaster position="bottom-center" />
       </StoreProvider>
     </QueryClientProvider>
