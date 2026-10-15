@@ -41,29 +41,28 @@ export function SiteHeader() {
   };
 
   return (
-    <header className={cn("sticky top-0 z-50 bg-ivory/95 backdrop-blur transition-shadow", scrolled && "shadow-[0_1px_0_var(--color-border)]")}>
+    <header className={cn("sticky top-0 z-50 bg-background/95 backdrop-blur transition-shadow", scrolled && "shadow-[0_1px_0_var(--color-border)]")}>
       <div className="bg-cafe text-primary-foreground">
         <p className="py-1.5 text-center text-[0.6rem] uppercase tracking-[0.28em]">Semijoias delicadas para todos os momentos</p>
       </div>
 
       <div className="border-b border-border">
-        <div className={cn("mx-auto grid max-w-7xl grid-cols-3 items-center px-4 transition-all sm:px-6", scrolled ? "py-1.5" : "py-2.5")}>
+        <div className={cn("mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 transition-all sm:px-6", scrolled ? "py-1.5" : "py-2.5")}>
           <div className="flex items-center gap-4">
             <button type="button" aria-label="Abrir menu" onClick={() => setOpen(true)} className="lg:hidden">
               <Menu className="h-5 w-5" strokeWidth={1.25} />
             </button>
+            <Link to="/" aria-label="Beleza em Detalhes — página inicial" className="flex items-center gap-3">
+              <img src={logoBd} alt="Beleza em Detalhes" width={1024} height={1024} className={cn("object-contain transition-all", scrolled ? "h-9 w-9" : "h-11 w-11 sm:h-12 sm:w-12")} />
+              {!scrolled && <span className="hidden font-serif text-sm font-semibold uppercase tracking-[0.3em] sm:block">Beleza em Detalhes</span>}
+            </Link>
+          </div>
+
+          <div className="flex items-center justify-end gap-4 sm:gap-5">
             <button type="button" onClick={() => setSearchOpen((v) => !v)} className="hidden items-center gap-2 text-muted-foreground transition-colors hover:text-foreground lg:flex">
               <Search className="h-4 w-4" strokeWidth={1.25} />
               <span className="text-xs tracking-wide">Buscar semijoias</span>
             </button>
-          </div>
-
-          <Link to="/" aria-label="Beleza em Detalhes — página inicial" className="flex flex-col items-center">
-            <img src={logoBd} alt="Beleza em Detalhes" width={1024} height={1024} className={cn("object-contain transition-all", scrolled ? "h-9 w-9" : "h-11 w-11 sm:h-12 sm:w-12")} />
-            {!scrolled && <span className="mt-0.5 hidden font-serif text-sm uppercase tracking-[0.3em] sm:block">Beleza em Detalhes</span>}
-          </Link>
-
-          <div className="flex items-center justify-end gap-4 sm:gap-5">
             <button type="button" aria-label="Buscar" onClick={() => setSearchOpen((v) => !v)} className="lg:hidden">
               <Search className="h-5 w-5" strokeWidth={1.25} />
             </button>
@@ -106,7 +105,7 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div className="reveal fixed inset-0 z-50 overflow-y-auto bg-ivory lg:hidden">
+        <div className="reveal fixed inset-0 z-50 overflow-y-auto bg-background lg:hidden">
           <div className="flex items-center justify-between border-b border-border px-4 py-4">
             <span className="script text-3xl text-cafe">menu</span>
             <button type="button" aria-label="Fechar menu" onClick={() => setOpen(false)}><X className="h-5 w-5" strokeWidth={1.25} /></button>
@@ -119,6 +118,9 @@ export function SiteHeader() {
             ))}
             <li className="border-b border-border">
               <Link to="/favoritos" onClick={() => setOpen(false)} className="block py-4 text-sm uppercase tracking-[0.2em]">Favoritos</Link>
+            </li>
+            <li className="border-b border-border">
+              <Link to="/faq" onClick={() => setOpen(false)} className="block py-4 text-sm uppercase tracking-[0.2em]">Dúvidas frequentes</Link>
             </li>
           </ul>
         </div>
