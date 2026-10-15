@@ -28,6 +28,7 @@ export function SiteFooter() {
           <p className="text-[0.62rem] uppercase tracking-[0.25em] text-primary-foreground/50">Conta</p>
           <ul className="mt-4 space-y-2 text-sm">
             <li><Link to="/favoritos" className="text-primary-foreground/80 hover:text-primary-foreground">Favoritos</Link></li>
+            <li><Link to="/faq" className="text-primary-foreground/80 hover:text-primary-foreground">Dúvidas frequentes</Link></li>
             <li><Link to="/admin" className="text-primary-foreground/80 hover:text-primary-foreground">Área administrativa</Link></li>
           </ul>
         </div>
