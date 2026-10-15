@@ -37,7 +37,8 @@ export const Route = createFileRoute("/produto/$slug")({
 
 function ProductPage() {
   const { slug } = Route.useParams();
-  const { data: p } = useQuery(productQuery(slug));
+  const loaded = Route.useLoaderData();
+  const { data: p } = useQuery({ ...productQuery(slug), initialData: loaded });
   const { addToCart, setCartOpen, toggleFavorite, isFavorite } = useStore();
   const [sel, setSel] = useState<(string | null)[]>([null, null, null]);
   const [qty, setQty] = useState(1);
