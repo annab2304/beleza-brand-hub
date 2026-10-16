@@ -68,6 +68,130 @@ export type Database = {
         }
         Relationships: []
       }
+      order_items: {
+        Row: {
+          id: string
+          image_url: string | null
+          name: string
+          options: Json
+          order_id: string
+          product_id: string | null
+          quantity: number
+          sku: string | null
+          unit_price: number
+          variant_id: string | null
+        }
+        Insert: {
+          id?: string
+          image_url?: string | null
+          name: string
+          options?: Json
+          order_id: string
+          product_id?: string | null
+          quantity: number
+          sku?: string | null
+          unit_price: number
+          variant_id?: string | null
+        }
+        Update: {
+          id?: string
+          image_url?: string | null
+          name?: string
+          options?: Json
+          order_id?: string
+          product_id?: string | null
+          quantity?: number
+          sku?: string | null
+          unit_price?: number
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          customer_name: string
+          customer_phone: string | null
+          email: string
+          id: string
+          mp_payment_id: string | null
+          mp_preference_id: string | null
+          order_number: number
+          payment_status: string
+          shipping_address: Json | null
+          shipping_cost: number
+          shipping_days: number | null
+          shipping_service: string | null
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_name: string
+          customer_phone?: string | null
+          email: string
+          id?: string
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          order_number?: never
+          payment_status?: string
+          shipping_address?: Json | null
+          shipping_cost?: number
+          shipping_days?: number | null
+          shipping_service?: string | null
+          status?: string
+          subtotal: number
+          total: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string | null
+          email?: string
+          id?: string
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          order_number?: never
+          payment_status?: string
+          shipping_address?: Json | null
+          shipping_cost?: number
+          shipping_days?: number | null
+          shipping_service?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       product_images: {
         Row: {
           id: string
@@ -272,6 +396,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      mark_order_paid: {
+        Args: { p_order_id: string; p_payment_id: string }
         Returns: boolean
       }
     }
