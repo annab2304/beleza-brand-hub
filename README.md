@@ -39,6 +39,19 @@ Configure como *secrets* do projeto (Lovable Cloud → Secrets) ou como variáve
 | `MERCADOPAGO_WEBHOOK_SECRET` | recomendada | "Assinatura secreta" do webhook, para validar os avisos |
 | `SITE_URL` | opcional | Endereço público da loja (ex.: `https://www.seudominio.com.br`). Se vazio, usa o endereço de onde a cliente comprou |
 
+### Frete (Melhor Envio)
+
+O frete é cotado no Melhor Envio no checkout: a cliente informa o CEP, escolhe a opção, e o valor entra no total cobrado no Mercado Pago. O valor é recotado no servidor na hora de criar o pedido.
+
+| Variável | Obrigatória | Para quê |
+| --- | --- | --- |
+| `MELHORENVIO_TOKEN` | sim | Token da API do Melhor Envio (segredo) |
+| `MELHORENVIO_ORIGIN_CEP` | sim | CEP de onde você envia os pedidos |
+| `MELHORENVIO_CONTACT_EMAIL` | sim | E-mail técnico que o Melhor Envio exige no cabeçalho das requisições |
+| `MELHORENVIO_ENV` | opcional | `sandbox` para testar no ambiente de testes deles; vazio = produção |
+
+Peso e medidas da embalagem (uma peça) ficam em `src/lib/shipping.config.ts`. A etiqueta ainda é gerada manualmente no painel do Melhor Envio, usando o endereço e o serviço que aparecem no pedido em `/admin`.
+
 ### Webhook
 
 No painel do Mercado Pago (Suas integrações → Webhooks), cadastre o evento **Pagamentos** apontando para:
@@ -47,7 +60,7 @@ No painel do Mercado Pago (Suas integrações → Webhooks), cadastre o evento *
 
 ### Banco de dados
 
-A migração `drizzle/migrations/0001_orders.sql` cria as tabelas `orders` e `order_items` (com RLS: a cliente só enxerga os próprios pedidos) e a função `mark_order_paid`, que confirma o pagamento uma única vez e baixa o `own_stock`. Ela precisa ser aplicada no banco antes de usar o checkout.
+As migrações `drizzle/migrations/0001_orders.sql` (pedidos) e `0002_shipping.sql` (frete do pedido) criam as tabelas `orders` e `order_items` (com RLS: a cliente só enxerga os próprios pedidos) e a função `mark_order_paid`, que confirma o pagamento uma única vez e baixa o `own_stock`. Elas precisam ser aplicadas no banco, em ordem, antes de usar o checkout.
 
 ### Contato
 

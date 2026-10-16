@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Instagram, MessageCircle } from "lucide-react";
 
-import { INSTAGRAM_HANDLE, INSTAGRAM_URL, WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/contact";
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL, whatsappUrl } from "@/lib/contact";
 
 export function SiteFooter() {
   return (
@@ -41,7 +41,7 @@ export function SiteFooter() {
           <ul className="mt-4 space-y-3 text-sm">
             <li>
               <a href={whatsappUrl("Olá! Vim pelo site da Beleza em Detalhes.")} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-primary-foreground/80 hover:text-primary-foreground">
-                <MessageCircle className="h-4 w-4" strokeWidth={1.25} /> WhatsApp {WHATSAPP_DISPLAY}
+                <MessageCircle className="h-4 w-4" strokeWidth={1.25} /> Fale no WhatsApp
               </a>
             </li>
             <li>

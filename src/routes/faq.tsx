@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { INSTAGRAM_HANDLE, INSTAGRAM_URL, WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/contact";
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL, whatsappUrl } from "@/lib/contact";
 import {
   Accordion,
   AccordionContent,
@@ -145,7 +145,7 @@ function FaqPage() {
               rel="noreferrer"
               className="font-medium text-foreground underline underline-offset-4"
             >
-              {WHATSAPP_DISPLAY}
+              clicando aqui
             </a>{" "}
             ou no Instagram{" "}
             <a

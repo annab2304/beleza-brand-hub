@@ -155,7 +155,7 @@ function Dashboard({ email }: { email?: string | undefined }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id,order_number,created_at,customer_name,customer_phone,email,shipping_address,status,payment_status,total,order_items(id,sku,name,options,quantity,unit_price)")
+        .select("id,order_number,created_at,customer_name,customer_phone,email,shipping_address,status,payment_status,total,shipping_cost,shipping_service,shipping_days,order_items(id,sku,name,options,quantity,unit_price)")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw new Error(error.message);
@@ -230,6 +230,7 @@ function Dashboard({ email }: { email?: string | undefined }) {
                     <div className="space-y-3 bg-muted/30 p-4 text-sm">
                       <p>{o.email} · {o.customer_phone ?? "sem telefone"}</p>
                       <p className="text-muted-foreground">{a["street"]}, {a["number"]}{a["complement"] ? ` — ${a["complement"]}` : ""} · {a["neighborhood"]} · {a["city"]}/{a["state"]} · CEP {a["cep"]}</p>
+                      <p>Frete: {o.shipping_service ?? "—"}{o.shipping_days ? ` (até ${o.shipping_days} dias úteis)` : ""} · {brl(Number(o.shipping_cost))}</p>
                       <ul className="space-y-1">
                         {o.order_items.map((i) => (
                           <li key={i.id}>{i.quantity}× {clean(i.name)} <span className="text-xs text-muted-foreground">({parseOptions(i.options).map((x) => x.value).join(" / ")}) · SKU {i.sku} · {brl(Number(i.unit_price))}</span></li>

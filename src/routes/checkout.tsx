@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { useAuthUser } from "@/lib/auth";
-import { createCheckout } from "@/lib/checkout.functions";
+import { createCheckout, getShippingOptions } from "@/lib/checkout.functions";
+import type { ShippingOption } from "@/lib/shipping.config";
 import { brl, clean } from "@/lib/catalog";
 import { whatsappUrl } from "@/lib/contact";
 import { useStore } from "@/lib/store";
@@ -32,6 +33,8 @@ function CheckoutPage() {
     name: "", email: "", phone: "",
     cep: "", street: "", number: "", complement: "", neighborhood: "", city: "", state: "",
   });
+  const [quote, setQuote] = useState<{ status: "idle" | "loading" | "ok" | "error"; options: ShippingOption[]; message?: string }>({ status: "idle", options: [] });
+  const [serviceId, setServiceId] = useState<number | null>(null);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }));
 
   // Se estiver logada, já preenche nome e e-mail.
@@ -41,9 +44,38 @@ function CheckoutPage() {
     setF((s) => ({ ...s, name: s.name || fullName, email: s.email || user.email || "" }));
   }, [user]);
 
+  // Calcula o frete (Melhor Envio) sempre que o CEP completo ou a sacola mudam.
+  const cepDigits = digits(f.cep);
+  const cartKey = cart.map((i) => `${i.variant_id}:${i.quantity}`).join(",");
+  useEffect(() => {
+    setServiceId(null);
+    if (cepDigits.length !== 8 || cart.length === 0) {
+      setQuote({ status: "idle", options: [] });
+      return;
+    }
+    let cancelled = false;
+    setQuote({ status: "loading", options: [] });
+    getShippingOptions({ data: { cep: cepDigits, items: cart.map((i) => ({ variant_id: i.variant_id, quantity: i.quantity })) } })
+      .then((options) => {
+        if (cancelled) return;
+        setQuote({ status: "ok", options });
+        setServiceId(options[0]?.id ?? null); // já deixa a mais barata marcada
+      })
+      .catch((err) => {
+        if (!cancelled) setQuote({ status: "error", options: [], message: err instanceof Error ? err.message : "Não foi possível calcular o frete." });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cepDigits, cartKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const chosen = quote.options.find((o) => o.id === serviceId) ?? null;
+  const total = subtotal + (chosen?.price ?? 0);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
+    if (!chosen) { toast.error("Escolha uma opção de frete para continuar."); return; }
     setBusy(true);
     try {
       const { checkoutUrl } = await createCheckout({
@@ -55,6 +87,7 @@ function CheckoutPage() {
             neighborhood: f.neighborhood, city: f.city, state: f.state,
           },
           items: cart.map((i) => ({ variant_id: i.variant_id, quantity: i.quantity })),
+          shipping: { service_id: chosen.id },
         },
       });
       window.location.href = checkoutUrl; // segue para o pagamento seguro no Mercado Pago
@@ -108,6 +141,36 @@ function CheckoutPage() {
               </section>
 
               <section>
+                <h2 className="text-2xl">Entrega</h2>
+                {quote.status === "idle" && <p className="mt-2 text-sm text-muted-foreground">Preencha o CEP para ver as opções de frete.</p>}
+                {quote.status === "loading" && <p className="mt-2 text-sm text-muted-foreground">Calculando o frete…</p>}
+                {quote.status === "error" && (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {quote.message}{" "}
+                    <a href={whatsappUrl("Olá! Não consegui calcular o frete no site.")} target="_blank" rel="noreferrer" className="underline">Falar no WhatsApp</a>
+                  </p>
+                )}
+                {quote.status === "ok" && (
+                  <ul className="mt-4 space-y-2">
+                    {quote.options.map((o) => (
+                      <li key={o.id}>
+                        <label className={`flex cursor-pointer items-center justify-between gap-3 border px-4 py-3 text-sm ${serviceId === o.id ? "border-foreground" : "border-border"}`}>
+                          <span className="flex items-center gap-3">
+                            <input type="radio" name="frete" checked={serviceId === o.id} onChange={() => setServiceId(o.id)} />
+                            <span>
+                              {o.company} {o.name}
+                              {o.days > 0 && <span className="block text-xs text-muted-foreground">até {o.days} {o.days === 1 ? "dia útil" : "dias úteis"}</span>}
+                            </span>
+                          </span>
+                          <span className="font-medium">{brl(o.price)}</span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              <section>
                 <h2 className="text-2xl">Pagamento</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Você será levada ao ambiente seguro do Mercado Pago para pagar. Nós não guardamos dados do seu cartão.
@@ -133,10 +196,10 @@ function CheckoutPage() {
               </ul>
               <dl className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
                 <div className="flex justify-between"><dt>Subtotal</dt><dd>{brl(subtotal)}</dd></div>
-                <div className="flex justify-between"><dt>Frete</dt><dd className="text-muted-foreground">a definir</dd></div>
-                <div className="flex justify-between border-t border-border pt-3 text-base font-medium"><dt>Total</dt><dd>{brl(subtotal)}</dd></div>
+                <div className="flex justify-between"><dt>Frete</dt><dd className={chosen ? "" : "text-muted-foreground"}>{chosen ? brl(chosen.price) : "informe o CEP"}</dd></div>
+                <div className="flex justify-between border-t border-border pt-3 text-base font-medium"><dt>Total</dt><dd>{brl(total)}</dd></div>
               </dl>
-              <button type="submit" disabled={busy} className="btn-primary mt-6 w-full">
+              <button type="submit" disabled={busy || !chosen} className="btn-primary mt-6 w-full disabled:opacity-50">
                 {busy ? "Aguarde…" : "Pagar com Mercado Pago"}
               </button>
               <p className="mt-3 text-center text-xs text-muted-foreground">

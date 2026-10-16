@@ -5,6 +5,11 @@ import { z } from "zod";
 // Este arquivo vai para o bundle do navegador: o código sensível fica dentro dos
 // handlers e é carregado com import() dinâmico (somente no servidor).
 
+const cartItems = z
+  .array(z.object({ variant_id: z.string().uuid(), quantity: z.number().int().min(1).max(20) }))
+  .min(1, "Sua sacola está vazia")
+  .max(50);
+
 const checkoutInput = z.object({
   customer: z.object({
     name: z.string().trim().min(3, "Informe seu nome completo").max(120),
@@ -21,10 +26,9 @@ const checkoutInput = z.object({
     state: z.string().trim().length(2).toUpperCase(),
   }),
   // O cliente envia só QUAL variante e QUANTAS. Nome, foto e preço vêm sempre do banco.
-  items: z
-    .array(z.object({ variant_id: z.string().uuid(), quantity: z.number().int().min(1).max(20) }))
-    .min(1, "Sua sacola está vazia")
-    .max(50),
+  items: cartItems,
+  // Só o código do serviço escolhido: o valor do frete é recotado no servidor.
+  shipping: z.object({ service_id: z.number().int() }),
 });
 
 function siteOrigin(): string {
@@ -40,6 +44,8 @@ export const createCheckout = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { createPreference } = await import("@/lib/mercadopago.server");
+    const { loadOrderLines, sumLines } = await import("@/lib/order-lines.server");
+    const { quoteShipping } = await import("@/lib/melhorenvio.server");
 
     // Login é opcional: se houver sessão válida, o pedido fica ligado à conta.
     let userId: string | null = null;
@@ -50,45 +56,18 @@ export const createCheckout = createServerFn({ method: "POST" })
     }
 
     // Preços e dados do produto SEMPRE do banco — nunca confiar no que o navegador manda.
-    const ids = [...new Set(data.items.map((i) => i.variant_id))];
-    const { data: variants, error } = await supabaseAdmin
-      .from("product_variants")
-      .select("id,sku,option1,option2,option3,price,active,image_url,product_id,products(name,status,option1_name,option2_name,option3_name,product_images(url,position))")
-      .in("id", ids);
-    if (error) throw new Error("Não foi possível validar sua sacola. Tente novamente.");
+    const lines = await loadOrderLines(data.items);
+    const subtotal = sumLines(lines);
 
-    const byId = new Map((variants ?? []).map((v) => [v.id, v]));
-    const lines = data.items.map((item) => {
-      const v = byId.get(item.variant_id);
-      const p = v?.products as unknown as {
-        name: string; status: string;
-        option1_name: string | null; option2_name: string | null; option3_name: string | null;
-        product_images: { url: string; position: number }[];
-      } | null;
-      if (!v || !p || !v.active || p.status !== "active") {
-        throw new Error("Um dos itens da sacola não está mais disponível. Remova-o e tente de novo.");
-      }
-      const options = [
-        { name: p.option1_name ?? "Opção", value: v.option1 },
-        { name: p.option2_name ?? "Opção", value: v.option2 },
-        { name: p.option3_name ?? "Opção", value: v.option3 },
-      ].filter((o): o is { name: string; value: string } => !!o.value);
-      const image = v.image_url ?? [...p.product_images].sort((a, b) => a.position - b.position)[0]?.url ?? null;
-      return {
-        product_id: v.product_id,
-        variant_id: v.id,
-        sku: v.sku,
-        name: p.name,
-        options,
-        image_url: image,
-        unit_price: Number(v.price),
-        quantity: item.quantity,
-      };
-    });
-
-    const subtotal = Math.round(lines.reduce((s, l) => s + l.unit_price * l.quantity, 0) * 100) / 100;
-    const shippingCost = 0; // frete ainda não definido pela loja
-    const total = subtotal + shippingCost;
+    // O frete também é recotado aqui: o valor que veio do navegador não é usado.
+    const options = await quoteShipping(
+      data.address.cep,
+      lines.map((l) => ({ sku: l.sku, unit_price: l.unit_price, quantity: l.quantity })),
+    );
+    const shipping = options.find((o) => o.id === data.shipping.service_id);
+    if (!shipping) throw new Error("A opção de frete escolhida não está mais disponível. Calcule o frete de novo.");
+    const shippingCost = shipping.price;
+    const total = Math.round((subtotal + shippingCost) * 100) / 100;
     if (total <= 0) throw new Error("Valor do pedido inválido.");
 
     const { data: order, error: orderError } = await supabaseAdmin
@@ -101,6 +80,8 @@ export const createCheckout = createServerFn({ method: "POST" })
         shipping_address: data.address,
         subtotal,
         shipping_cost: shippingCost,
+        shipping_service: `${shipping.company} ${shipping.name}`.trim(),
+        shipping_days: shipping.days,
         total,
       })
       .select("id")
@@ -116,12 +97,18 @@ export const createCheckout = createServerFn({ method: "POST" })
     try {
       const pref = await createPreference({
         orderId: order.id,
-        items: lines.map((l) => ({
-          id: l.sku,
-          title: [l.name, ...l.options.map((o) => o.value)].join(" - ").slice(0, 250),
-          quantity: l.quantity,
-          unit_price: l.unit_price,
-        })),
+        items: [
+          ...lines.map((l) => ({
+            id: l.sku,
+            title: [l.name, ...l.options.map((o) => o.value)].join(" - ").slice(0, 250),
+            quantity: l.quantity,
+            unit_price: l.unit_price,
+          })),
+          // O frete entra como um item, para o total cobrado no Mercado Pago bater com o do pedido.
+          ...(shippingCost > 0
+            ? [{ id: "FRETE", title: `Frete - ${shipping.company} ${shipping.name}`.trim().slice(0, 250), quantity: 1, unit_price: shippingCost }]
+            : []),
+        ],
         payer: { name: data.customer.name, email: data.customer.email },
         origin: siteOrigin(),
       });
@@ -134,6 +121,24 @@ export const createCheckout = createServerFn({ method: "POST" })
         .eq("id", order.id);
       throw err;
     }
+  });
+
+const shippingInput = z.object({
+  cep: z.string().trim().regex(/^\d{5}-?\d{3}$/, "CEP inválido"),
+  items: cartItems,
+});
+
+/** Opções de frete (Melhor Envio) para o CEP e a sacola informados. */
+export const getShippingOptions = createServerFn({ method: "POST" })
+  .inputValidator(shippingInput)
+  .handler(async ({ data }) => {
+    const { loadOrderLines } = await import("@/lib/order-lines.server");
+    const { quoteShipping } = await import("@/lib/melhorenvio.server");
+    const lines = await loadOrderLines(data.items);
+    return quoteShipping(
+      data.cep,
+      lines.map((l) => ({ sku: l.sku, unit_price: l.unit_price, quantity: l.quantity })),
+    );
   });
 
 const statusInput = z.object({
