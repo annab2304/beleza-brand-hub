@@ -5,7 +5,7 @@
 create table public.orders (
   id uuid primary key default gen_random_uuid(),
   order_number bigint generated always as identity,
-  user_id uuid references auth.users(id) on delete set null,
+  user_id uuid, -- conta opcional; sem FK para auth.users
   email text not null,
   customer_name text not null,
   customer_phone text,
