@@ -29,7 +29,7 @@ export async function createPreference(args: {
     items: items.map((i) => ({ ...i, currency_id: "BRL" })),
     payer: { name: payer.name, email: payer.email },
     external_reference: orderId,
-    statement_descriptor: "BELEZA EM DETALHES",
+    statement_descriptor: "BELEZA DETALHES", // o Mercado Pago aceita no máximo 16 caracteres
     back_urls: { success: returnUrl, pending: returnUrl, failure: returnUrl },
   };
   // O Mercado Pago só aceita retorno automático e webhook em endereços HTTPS públicos.
