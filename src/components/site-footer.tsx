@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Instagram, MessageCircle } from "lucide-react";
+import { Instagram, Mail, MessageCircle } from "lucide-react";
 
-import { INSTAGRAM_HANDLE, INSTAGRAM_URL, whatsappUrl } from "@/lib/contact";
+import { CONTACT_EMAIL, INSTAGRAM_HANDLE, INSTAGRAM_URL, mailtoUrl, whatsappUrl } from "@/lib/contact";
 
 export function SiteFooter() {
   return (
@@ -33,7 +33,9 @@ export function SiteFooter() {
             <li><Link to="/minha-conta" className="text-primary-foreground/80 hover:text-primary-foreground">Minha conta e pedidos</Link></li>
             <li><Link to="/favoritos" className="text-primary-foreground/80 hover:text-primary-foreground">Favoritos</Link></li>
             <li><Link to="/faq" className="text-primary-foreground/80 hover:text-primary-foreground">Dúvidas frequentes</Link></li>
-            <li><Link to="/admin" className="text-primary-foreground/80 hover:text-primary-foreground">Área administrativa</Link></li>
+            <li><Link to="/trocas-e-devolucoes" className="text-primary-foreground/80 hover:text-primary-foreground">Trocas e devoluções</Link></li>
+            <li><Link to="/privacidade" className="text-primary-foreground/80 hover:text-primary-foreground">Privacidade</Link></li>
+            <li><Link to="/termos" className="text-primary-foreground/80 hover:text-primary-foreground">Termos de uso</Link></li>
           </ul>
         </div>
         <div>
@@ -42,6 +44,11 @@ export function SiteFooter() {
             <li>
               <a href={whatsappUrl("Olá! Vim pelo site da Beleza em Detalhes.")} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-primary-foreground/80 hover:text-primary-foreground">
                 <MessageCircle className="h-4 w-4" strokeWidth={1.25} /> Fale no WhatsApp
+              </a>
+            </li>
+            <li>
+              <a href={mailtoUrl()} className="flex items-center gap-2 text-primary-foreground/80 hover:text-primary-foreground">
+                <Mail className="h-4 w-4" strokeWidth={1.25} /> {CONTACT_EMAIL}
               </a>
             </li>
             <li>

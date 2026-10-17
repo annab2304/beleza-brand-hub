@@ -83,6 +83,7 @@ export const createCheckout = createServerFn({ method: "POST" })
         shipping_cost: shippingCost,
         shipping_service: `${shipping.company} ${shipping.name}`.trim(),
         shipping_days: shipping.days,
+        shipping_service_id: shipping.id,
         total,
       })
       .select("id")

@@ -9,3 +9,6 @@ export function whatsappUrl(message?: string): string {
   const base = `https://wa.me/${WHATSAPP_NUMBER}`;
   return message ? `${base}?text=${encodeURIComponent(message)}` : base;
 }
+
+export const CONTACT_EMAIL = "bemdetalhes@gmail.com";
+export const mailtoUrl = (subject?: string) => `mailto:${CONTACT_EMAIL}${subject ? `?subject=${encodeURIComponent(subject)}` : ""}`;

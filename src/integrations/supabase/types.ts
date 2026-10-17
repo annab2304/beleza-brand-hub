@@ -68,6 +68,24 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           id: string
@@ -136,6 +154,7 @@ export type Database = {
           customer_phone: string | null
           email: string
           id: string
+          me_shipment_id: string | null
           mp_payment_id: string | null
           mp_preference_id: string | null
           order_number: number
@@ -143,10 +162,12 @@ export type Database = {
           shipping_address: Json | null
           shipping_cost: number
           shipping_days: number | null
+          shipping_service_id: number | null
           shipping_service: string | null
           status: string
           subtotal: number
           total: number
+          tracking_code: string | null
           updated_at: string
           user_id: string | null
         }
@@ -156,6 +177,7 @@ export type Database = {
           customer_phone?: string | null
           email: string
           id?: string
+          me_shipment_id?: string | null
           mp_payment_id?: string | null
           mp_preference_id?: string | null
           order_number?: never
@@ -163,10 +185,12 @@ export type Database = {
           shipping_address?: Json | null
           shipping_cost?: number
           shipping_days?: number | null
+          shipping_service_id?: number | null
           shipping_service?: string | null
           status?: string
           subtotal: number
           total: number
+          tracking_code?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -176,6 +200,7 @@ export type Database = {
           customer_phone?: string | null
           email?: string
           id?: string
+          me_shipment_id?: string | null
           mp_payment_id?: string | null
           mp_preference_id?: string | null
           order_number?: never
@@ -183,10 +208,12 @@ export type Database = {
           shipping_address?: Json | null
           shipping_cost?: number
           shipping_days?: number | null
+          shipping_service_id?: number | null
           shipping_service?: string | null
           status?: string
           subtotal?: number
           total?: number
+          tracking_code?: string | null
           updated_at?: string
           user_id?: string | null
         }

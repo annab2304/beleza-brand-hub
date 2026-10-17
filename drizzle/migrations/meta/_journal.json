@@ -36,6 +36,20 @@
       "when": 1792122444364,
       "tag": "0004_customer_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792300000000,
+      "tag": "0005_newsletter_e_etiqueta",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792300100000,
+      "tag": "0006_remove_kit_revenda",
+      "breakpoints": true
     }
   ]
 }
