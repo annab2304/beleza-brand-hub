@@ -2,6 +2,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import { useEffect } from "react";
+import { getCustomerProfile } from "@/lib/customer.functions";
+import { savedAddress } from "@/lib/customer-data";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -22,6 +24,11 @@ export const Route = createFileRoute("/minha-conta")({
   head: () => ({
     meta: [
       { title: "Minha conta — Beleza em Detalhes" },
+      { name: "description", content: "Seus dados salvos e pedidos na Beleza em Detalhes." },
+      { property: "og:title", content: "Minha conta — Beleza em Detalhes" },
+      { property: "og:description", content: "Consulte sua conta e acompanhe seus pedidos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -42,6 +49,8 @@ function AccountPage() {
   const user = useAuthUser();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const profile = useQuery({ queryKey: ["customer-profile", user?.id], enabled: !!user, queryFn: () => getCustomerProfile() });
+  const address = savedAddress(profile.data?.shipping_address);
 
   useEffect(() => {
     if (user === null) navigate({ to: "/login", search: { redirect: "/minha-conta" } });
@@ -51,10 +60,11 @@ function AccountPage() {
     queryKey: ["my-orders", user?.id],
     enabled: !!user,
     queryFn: async (): Promise<OrderRow[]> => {
+      if (!user) return [];
       const { data, error } = await supabase
         .from("orders")
         .select("id,order_number,created_at,status,payment_status,total,order_items(id,name,options,image_url,unit_price,quantity)")
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw new Error(error.message);
       return data as unknown as OrderRow[];
@@ -92,6 +102,16 @@ function AccountPage() {
               </button>
             </div>
 
+            <section className="mt-10 border-t border-border pt-6">
+              <h2 className="text-2xl">Meus dados</h2>
+              {profile.isLoading && <p className="mt-3 text-sm text-muted-foreground">Carregando…</p>}
+              {profile.isError && <p className="mt-3 text-sm text-muted-foreground">Não foi possível carregar seus dados.</p>}
+              {profile.data && <div className="mt-3 space-y-1 text-sm">
+                <p>{profile.data.full_name}</p><p>{profile.data.phone}</p>
+                {address.street && <><p>{address.street}, {address.number}{address.complement ? ` — ${address.complement}` : ""}</p>
+                  <p>{address.neighborhood} · {address.city} / {address.state}</p><p>CEP {address.cep}</p></>}
+              </div>}
+            </section>
             <h2 className="mt-12 text-2xl">Meus pedidos</h2>
             <div className="gold-rule mt-3 w-10" />
 

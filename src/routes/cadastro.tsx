@@ -10,6 +10,11 @@ export const Route = createFileRoute("/cadastro")({
   head: () => ({
     meta: [
       { title: "Criar conta — Beleza em Detalhes" },
+      { name: "description", content: "Crie sua conta na Beleza em Detalhes." },
+      { property: "og:title", content: "Criar conta — Beleza em Detalhes" },
+      { property: "og:description", content: "Cadastre-se para acompanhar suas compras." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),

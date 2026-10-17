@@ -24,5 +24,6 @@ export function parsePostalAddress(value: unknown) {
 }
 export function savedAddress(value: unknown): Partial<z.infer<typeof addressSchema>> {
   const parsed = addressSchema.partial().safeParse(value);
-  return parsed.success ? parsed.data : {};
+  if (!parsed.success) return {};
+  return Object.fromEntries(Object.entries(parsed.data).filter(([, value]) => value !== undefined)) as Partial<z.infer<typeof addressSchema>>;
 }

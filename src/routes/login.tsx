@@ -10,6 +10,11 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Entrar — Beleza em Detalhes" },
+      { name: "description", content: "Entre na sua conta da Beleza em Detalhes." },
+      { property: "og:title", content: "Entrar — Beleza em Detalhes" },
+      { property: "og:description", content: "Acesse seus pedidos e dados salvos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
