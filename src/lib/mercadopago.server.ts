@@ -4,13 +4,20 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const MP_API = "https://api.mercadopago.com";
 
+// Aceita alguns nomes alternativos, caso o segredo tenha sido salvo com outro nome.
+const TOKEN_NAMES = ["MERCADOPAGO_ACCESS_TOKEN", "MERCADO_PAGO_ACCESS_TOKEN", "MP_ACCESS_TOKEN", "MERCADOPAGO_TOKEN", "MERCADO_PAGO_TOKEN"];
+
 function accessToken(): string {
-  const token = process.env["MERCADOPAGO_ACCESS_TOKEN"];
-  if (!token) {
-    console.error("[MercadoPago] MERCADOPAGO_ACCESS_TOKEN não configurado.");
-    throw new Error("Pagamento indisponível (código MP-SEM-TOKEN: o segredo MERCADOPAGO_ACCESS_TOKEN não chegou ao site). Fale com a gente pelo WhatsApp.");
+  const found = TOKEN_NAMES.map((n) => process.env[n]?.trim()).find((v) => v);
+  if (!found) {
+    // Só NOMES de variáveis parecidas (nunca valores) para ajudar a achar o erro de digitação.
+    const similar = Object.keys(process.env).filter((k) => /mercado|mp_|pago/i.test(k));
+    console.error("[MercadoPago] token não configurado. Variáveis parecidas:", similar);
+    throw new Error(
+      `Pagamento indisponível (código MP-SEM-TOKEN; segredos parecidos que o site vê: ${similar.length ? similar.join(", ") : "nenhum"}). Fale com a gente pelo WhatsApp.`,
+    );
   }
-  return token.trim();
+  return found;
 }
 
 export type MpPreferenceItem = { id: string; title: string; quantity: number; unit_price: number };
