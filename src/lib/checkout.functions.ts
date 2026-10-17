@@ -47,13 +47,14 @@ export const createCheckout = createServerFn({ method: "POST" })
     const { loadOrderLines, sumLines } = await import("@/lib/order-lines.server");
     const { quoteShipping } = await import("@/lib/melhorenvio.server");
 
-    // Login é opcional: se houver sessão válida, o pedido fica ligado à conta.
+    // Comprar exige conta: sem sessão válida, o pedido não é criado.
     let userId: string | null = null;
     const bearer = getRequestHeader("authorization");
     if (bearer?.startsWith("Bearer ")) {
       const { data: u } = await supabaseAdmin.auth.getUser(bearer.slice(7));
       userId = u.user?.id ?? null;
     }
+    if (!userId) throw new Error("Entre na sua conta (ou crie uma) para finalizar a compra.");
 
     // Preços e dados do produto SEMPRE do banco — nunca confiar no que o navegador manda.
     const lines = await loadOrderLines(data.items);
@@ -87,6 +88,15 @@ export const createCheckout = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (orderError || !order) throw new Error("Não foi possível registrar o pedido. Tente novamente.");
+
+    // Guarda nome, telefone e endereço na conta para preencher as próximas compras.
+    await supabaseAdmin.from("profiles").upsert({
+      id: userId,
+      full_name: data.customer.name,
+      phone: data.customer.phone,
+      shipping_address: data.address,
+      updated_at: new Date().toISOString(),
+    });
 
     const { error: itemsError } = await supabaseAdmin.from("order_items").insert(lines.map((l) => ({ ...l, order_id: order.id })));
     if (itemsError) {

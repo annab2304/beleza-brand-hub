@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuthUser } from "@/lib/auth";
 import { createCheckout, getShippingOptions } from "@/lib/checkout.functions";
 import type { ShippingOption } from "@/lib/shipping.config";
@@ -42,6 +43,36 @@ function CheckoutPage() {
     if (!user) return;
     const fullName = (user.user_metadata as { full_name?: string } | undefined)?.full_name ?? "";
     setF((s) => ({ ...s, name: s.name || fullName, email: s.email || user.email || "" }));
+  }, [user]);
+
+  // Preenche telefone e endereço salvos na conta (compras anteriores).
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("full_name,phone,shipping_address")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const a = (data.shipping_address ?? {}) as Record<string, string | undefined>;
+        setF((s) => ({
+          ...s,
+          name: s.name || data.full_name || "",
+          phone: s.phone || data.phone || "",
+          cep: s.cep || a["cep"] || "",
+          street: s.street || a["street"] || "",
+          number: s.number || a["number"] || "",
+          complement: s.complement || a["complement"] || "",
+          neighborhood: s.neighborhood || a["neighborhood"] || "",
+          city: s.city || a["city"] || "",
+          state: s.state || a["state"] || "",
+        }));
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   // Calcula o frete (Melhor Envio) sempre que o CEP completo ou a sacola mudam.
@@ -103,7 +134,20 @@ function CheckoutPage() {
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <h1 className="text-center text-4xl sm:text-5xl">Finalizar <span className="script text-cafe">compra</span></h1>
 
-        {cart.length === 0 ? (
+        {user === undefined ? (
+          <p className="py-16 text-center text-sm text-muted-foreground">Carregando…</p>
+        ) : user === null ? (
+          <div className="mx-auto max-w-md py-12 text-center">
+            <p className="script text-4xl text-cafe">entre para finalizar</p>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Para comprar, você precisa ter uma conta. Assim você acompanha seus pedidos e não precisa preencher tudo de novo na próxima vez. Sua sacola fica guardada.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Link to="/login" search={{ redirect: "/checkout" }} className="btn-primary">Entrar</Link>
+              <Link to="/cadastro" search={{ redirect: "/checkout" }} className="btn-primary">Criar conta</Link>
+            </div>
+          </div>
+        ) : cart.length === 0 ? (
           <div className="py-16 text-center">
             <p className="script text-4xl text-cafe">sua sacola está vazia</p>
             <Link to="/categoria/$slug" params={{ slug: "todos" }} className="btn-primary mt-8">Explorar a coleção</Link>
@@ -113,13 +157,6 @@ function CheckoutPage() {
             <div className="space-y-10">
               <section>
                 <h2 className="text-2xl">Seus dados</h2>
-                {!user && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Quer acompanhar o pedido na sua conta?{" "}
-                    <Link to="/login" search={{ redirect: "/checkout" }} className="underline">Entrar</Link> ou{" "}
-                    <Link to="/cadastro" search={{ redirect: "/checkout" }} className="underline">criar conta</Link>. Também dá para comprar sem cadastro.
-                  </p>
-                )}
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <input required autoComplete="name" placeholder="Nome completo" value={f.name} onChange={set("name")} className={`${FIELD} sm:col-span-2`} />
                   <input required type="email" autoComplete="email" placeholder="E-mail" value={f.email} onChange={set("email")} className={FIELD} />

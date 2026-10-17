@@ -336,6 +336,30 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          full_name: string
+          id: string
+          phone: string
+          shipping_address: Json
+          updated_at: string
+        }
+        Insert: {
+          full_name?: string
+          id: string
+          phone?: string
+          shipping_address?: Json
+          updated_at?: string
+        }
+        Update: {
+          full_name?: string
+          id?: string
+          phone?: string
+          shipping_address?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
