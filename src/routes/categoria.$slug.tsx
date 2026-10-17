@@ -9,12 +9,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { productsQuery, type ListParams } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 
-type Search = { busca?: string | undefined; ordem?: "recentes" | "nome" | undefined; pagina?: number | undefined };
+type Search = { busca?: string | undefined; ordem?: "recentes" | "nome" | "preco-asc" | "preco-desc" | undefined; pagina?: number | undefined };
 
 export const Route = createFileRoute("/categoria/$slug")({
   validateSearch: (s: Record<string, unknown>): Search => ({
     busca: typeof s["busca"] === "string" && s["busca"] ? s["busca"] : undefined,
-    ordem: s["ordem"] === "nome" ? "nome" : undefined,
+    ordem: s["ordem"] === "nome" || s["ordem"] === "preco-asc" || s["ordem"] === "preco-desc" ? s["ordem"] : undefined,
     pagina: Number(s["pagina"]) > 1 ? Number(s["pagina"]) : undefined,
   }),
   head: ({ params }) => {
@@ -93,11 +93,13 @@ function CategoryPage() {
             </Sheet>
             <select
               value={search.ordem ?? "recentes"}
-              onChange={(e) => navigate({ search: (p: Search) => ({ ...p, ordem: e.target.value === "nome" ? "nome" : undefined, pagina: undefined }) })}
+              onChange={(e) => navigate({ search: (p: Search) => ({ ...p, ordem: e.target.value === "recentes" ? undefined : (e.target.value as Search["ordem"]), pagina: undefined }) })}
               className="ml-auto border border-border bg-transparent px-3 py-2.5 text-xs uppercase tracking-[0.12em]"
               aria-label="Ordenar"
             >
               <option value="recentes">Mais recentes</option>
+              <option value="preco-asc">Menor preço</option>
+              <option value="preco-desc">Maior preço</option>
               <option value="nome">Nome (A–Z)</option>
             </select>
           </div>
