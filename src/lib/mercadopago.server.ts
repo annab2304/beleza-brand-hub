@@ -8,9 +8,9 @@ function accessToken(): string {
   const token = process.env["MERCADOPAGO_ACCESS_TOKEN"];
   if (!token) {
     console.error("[MercadoPago] MERCADOPAGO_ACCESS_TOKEN não configurado.");
-    throw new Error("Pagamento indisponível no momento. Fale com a gente pelo WhatsApp.");
+    throw new Error("Pagamento indisponível (código MP-SEM-TOKEN: o segredo MERCADOPAGO_ACCESS_TOKEN não chegou ao site). Fale com a gente pelo WhatsApp.");
   }
-  return token;
+  return token.trim();
 }
 
 export type MpPreferenceItem = { id: string; title: string; quantity: number; unit_price: number };
@@ -48,8 +48,12 @@ export async function createPreference(args: {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    console.error("[MercadoPago] erro ao criar preferência", res.status, await res.text());
-    throw new Error("Não foi possível iniciar o pagamento. Tente novamente.");
+    const detail = await res.text();
+    console.error("[MercadoPago] erro ao criar preferência", res.status, detail);
+    let msg = "";
+    try { msg = (JSON.parse(detail) as { message?: string }).message ?? ""; } catch { /* sem JSON */ }
+    // Código + mensagem do Mercado Pago (nunca inclui o token) para facilitar o diagnóstico.
+    throw new Error(`Não foi possível iniciar o pagamento (código MP-${res.status}${msg ? `: ${msg.slice(0, 140)}` : ""}).`);
   }
   const json = (await res.json()) as { id?: string; init_point?: string };
   if (!json.id || !json.init_point) throw new Error("Resposta inesperada do Mercado Pago.");
