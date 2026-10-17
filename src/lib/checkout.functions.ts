@@ -1,8 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest, getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
-
-import { isValidCpf } from "@/lib/cpf";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 // Este arquivo vai para o bundle do navegador: o código sensível fica dentro dos
 // handlers e é carregado com import() dinâmico (somente no servidor).
@@ -17,8 +16,6 @@ const checkoutInput = z.object({
     name: z.string().trim().min(3, "Informe seu nome completo").max(120),
     email: z.string().trim().email("E-mail inválido").max(160),
     phone: z.string().trim().regex(/^\d{10,11}$/, "Telefone com DDD, só números"),
-    // CPF é exigido pela transportadora para emitir a etiqueta de envio.
-    document: z.string().trim().refine(isValidCpf, "CPF inválido").transform((v) => v.replace(/\D/g, "")),
   }),
   address: z.object({
     cep: z.string().trim().regex(/^\d{5}-?\d{3}$/, "CEP inválido"),
@@ -44,21 +41,15 @@ function siteOrigin(): string {
 }
 
 export const createCheckout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(checkoutInput)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { createPreference } = await import("@/lib/mercadopago.server");
     const { loadOrderLines, sumLines } = await import("@/lib/order-lines.server");
     const { quoteShipping } = await import("@/lib/melhorenvio.server");
 
-    // Comprar exige conta: sem sessão válida, o pedido não é criado.
-    let userId: string | null = null;
-    const bearer = getRequestHeader("authorization");
-    if (bearer?.startsWith("Bearer ")) {
-      const { data: u } = await supabaseAdmin.auth.getUser(bearer.slice(7));
-      userId = u.user?.id ?? null;
-    }
-    if (!userId) throw new Error("Entre na sua conta (ou crie uma) para finalizar a compra.");
+    const userId = context.userId;
 
     // Preços e dados do produto SEMPRE do banco — nunca confiar no que o navegador manda.
     const lines = await loadOrderLines(data.items);
@@ -75,37 +66,23 @@ export const createCheckout = createServerFn({ method: "POST" })
     const total = Math.round((subtotal + shippingCost) * 100) / 100;
     if (total <= 0) throw new Error("Valor do pedido inválido.");
 
-    const orderRow = {
-      user_id: userId,
-      email: data.customer.email.toLowerCase(),
-      customer_name: data.customer.name,
-      customer_phone: data.customer.phone,
-      shipping_address: { ...data.address, document: data.customer.document },
-      subtotal,
-      shipping_cost: shippingCost,
-      shipping_service: `${shipping.company} ${shipping.name}`.trim(),
-      shipping_days: shipping.days,
-      total,
-    };
-    let { data: order, error: orderError } = await supabaseAdmin
+    const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .insert({ ...orderRow, shipping_service_id: shipping.id })
+      .insert({
+        user_id: userId,
+        email: data.customer.email.toLowerCase(),
+        customer_name: data.customer.name,
+        customer_phone: data.customer.phone,
+        shipping_address: data.address,
+        subtotal,
+        shipping_cost: shippingCost,
+        shipping_service: `${shipping.company} ${shipping.name}`.trim(),
+        shipping_days: shipping.days,
+        total,
+      })
       .select("id")
       .single();
-    // Enquanto a migração 0005 não foi aplicada, a coluna nova não existe: segue sem ela.
-    if (orderError?.message?.includes("shipping_service_id")) {
-      ({ data: order, error: orderError } = await supabaseAdmin.from("orders").insert(orderRow).select("id").single());
-    }
     if (orderError || !order) throw new Error("Não foi possível registrar o pedido. Tente novamente.");
-
-    // Guarda nome, telefone e endereço na conta para preencher as próximas compras.
-    await supabaseAdmin.from("profiles").upsert({
-      id: userId,
-      full_name: data.customer.name,
-      phone: data.customer.phone,
-      shipping_address: { ...data.address, document: data.customer.document },
-      updated_at: new Date().toISOString(),
-    });
 
     const { error: itemsError } = await supabaseAdmin.from("order_items").insert(lines.map((l) => ({ ...l, order_id: order.id })));
     if (itemsError) {
@@ -128,7 +105,7 @@ export const createCheckout = createServerFn({ method: "POST" })
             ? [{ id: "FRETE", title: `Frete - ${shipping.company} ${shipping.name}`.trim().slice(0, 250), quantity: 1, unit_price: shippingCost }]
             : []),
         ],
-        payer: { name: data.customer.name, email: data.customer.email, cpf: data.customer.document },
+        payer: { name: data.customer.name, email: data.customer.email },
         origin: siteOrigin(),
       });
       await supabaseAdmin.from("orders").update({ mp_preference_id: pref.id }).eq("id", order.id);

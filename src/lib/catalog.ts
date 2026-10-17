@@ -44,7 +44,7 @@ export type ListParams = {
   category?: string | undefined;
   flag?: "new" | "bestseller" | undefined;
   search?: string | undefined;
-  sort?: "recentes" | "nome" | "preco-asc" | "preco-desc" | undefined;
+  sort?: "recentes" | "nome" | undefined;
   page?: number | undefined;
   pageSize?: number | undefined;
 };
@@ -53,33 +53,11 @@ export async function fetchProducts(p: ListParams) {
   const pageSize = p.pageSize ?? 24;
   const page = p.page ?? 1;
   const select = p.category ? `${CARD_SELECT},categories!inner(slug)` : CARD_SELECT;
-  const build = () => {
-    let q = supabase.from("products").select(select, { count: "exact" }).eq("status", "active");
-    if (p.category) q = q.eq("categories.slug", p.category);
-    if (p.flag === "new") q = q.eq("is_new", true);
-    if (p.flag === "bestseller") q = q.eq("is_bestseller", true);
-    if (p.search) q = q.ilike("name", `%${p.search}%`);
-    return q;
-  };
-
-  // O preço fica nas variantes, então ordenar por preço é feito aqui: busca todos os
-  // produtos da lista (em blocos), ordena pelo menor preço de cada um e só então pagina.
-  if (p.sort === "preco-asc" || p.sort === "preco-desc") {
-    const chunk = 500;
-    const all: ProductCardData[] = [];
-    for (let from = 0; ; from += chunk) {
-      const { data, error } = await build().order("name").range(from, from + chunk - 1);
-      if (error) throw new Error(error.message);
-      const rows = (data as unknown as Raw[]) ?? [];
-      all.push(...rows.map(toCard));
-      if (rows.length < chunk) break;
-    }
-    const dir = p.sort === "preco-asc" ? 1 : -1;
-    all.sort((a, b) => (a.price - b.price) * dir || a.name.localeCompare(b.name, "pt-BR"));
-    return { items: all.slice((page - 1) * pageSize, page * pageSize), total: all.length };
-  }
-
-  let q = build();
+  let q = supabase.from("products").select(select, { count: "exact" }).eq("status", "active");
+  if (p.category) q = q.eq("categories.slug", p.category);
+  if (p.flag === "new") q = q.eq("is_new", true);
+  if (p.flag === "bestseller") q = q.eq("is_bestseller", true);
+  if (p.search) q = q.ilike("name", `%${p.search}%`);
   q = p.sort === "nome" ? q.order("name") : q.order("created_at", { ascending: false }).order("name");
   const { data, error, count } = await q.range((page - 1) * pageSize, page * pageSize - 1);
   if (error) throw new Error(error.message);

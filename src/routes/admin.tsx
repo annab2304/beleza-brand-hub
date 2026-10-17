@@ -6,9 +6,7 @@ import { toast } from "sonner";
 
 import logoBd from "@/assets/logo-bd.png";
 import { supabase } from "@/integrations/supabase/client";
-import { AdminProductForm } from "@/components/admin-product-form";
 import { brl, clean } from "@/lib/catalog";
-import { createShippingLabel } from "@/lib/labels.functions";
 import { formatOrderDate, ORDER_STATUS_LABEL, ORDER_STATUSES, parseOptions, PAYMENT_STATUS_LABEL } from "@/lib/orders";
 
 export const Route = createFileRoute("/admin")({
@@ -115,9 +113,7 @@ function Dashboard({ email }: { email?: string | undefined }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState<string | null>(null);
-  const [tab, setTab] = useState<"produtos" | "pedidos" | "newsletter" | "problemas">("produtos");
-  const [creating, setCreating] = useState(false);
-  const [labelBusy, setLabelBusy] = useState<string | null>(null);
+  const [tab, setTab] = useState<"produtos" | "pedidos" | "problemas">("produtos");
   const [openOrder, setOpenOrder] = useState<string | null>(null);
   const size = 30;
 
@@ -159,7 +155,7 @@ function Dashboard({ email }: { email?: string | undefined }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id,order_number,created_at,customer_name,customer_phone,email,shipping_address,status,payment_status,total,shipping_cost,shipping_service,shipping_days,shipping_service_id,me_shipment_id,tracking_code,order_items(id,sku,name,options,quantity,unit_price)")
+        .select("id,order_number,created_at,customer_name,customer_phone,email,shipping_address,status,payment_status,total,shipping_cost,shipping_service,shipping_days,order_items(id,sku,name,options,quantity,unit_price)")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw new Error(error.message);
@@ -171,50 +167,6 @@ function Dashboard({ email }: { email?: string | undefined }) {
     if (error) { toast.error(error.message); return; }
     toast.success("Pedido atualizado");
     qc.invalidateQueries({ queryKey: ["admin-orders"] });
-  };
-
-  const subs = useQuery({
-    queryKey: ["admin-newsletter"],
-    enabled: tab === "newsletter",
-    queryFn: async () => {
-      const { data, error } = await supabase.from("newsletter_subscribers").select("id,email,created_at").order("created_at", { ascending: false });
-      if (error) throw new Error(error.message);
-      return data;
-    },
-  });
-
-  const makeLabel = async (orderId: string) => {
-    setLabelBusy(orderId);
-    try {
-      await createShippingLabel({ data: { orderId } });
-      toast.success("Envio criado no carrinho do Melhor Envio. Falta pagar e imprimir a etiqueta lá.");
-      qc.invalidateQueries({ queryKey: ["admin-orders"] });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível criar a etiqueta.");
-    } finally {
-      setLabelBusy(null);
-    }
-  };
-  const saveTracking = async (id: string, code: string) => {
-    const { error } = await supabase.from("orders").update({ tracking_code: code.trim() || null }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Código de rastreio salvo");
-    qc.invalidateQueries({ queryKey: ["admin-orders"] });
-  };
-
-  const removeProduct = async (id: string, name: string) => {
-    if (!window.confirm(`Excluir "${clean(name)}" de vez? Isso apaga as variantes e imagens.`)) return;
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Produto excluído");
-    setOpen(null);
-    qc.invalidateQueries({ queryKey: ["admin-products"] });
-    qc.invalidateQueries({ queryKey: ["admin-stats"] });
-  };
-  const toggleStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("products").update({ status: status === "active" ? "inactive" : "active" }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    qc.invalidateQueries({ queryKey: ["admin-products"] });
   };
 
   const setStock = async (id: string, v: number) => {
@@ -256,7 +208,7 @@ function Dashboard({ email }: { email?: string | undefined }) {
         </div>
 
         <div className="mt-8 flex gap-6 border-b border-border text-sm">
-          {(["produtos", "pedidos", "newsletter", "problemas"] as const).map((t) => (
+          {(["produtos", "pedidos", "problemas"] as const).map((t) => (
             <button key={t} type="button" onClick={() => setTab(t)} className={`pb-3 capitalize ${tab === t ? "border-b-2 border-foreground font-medium" : "text-muted-foreground"}`}>{t}</button>
           ))}
         </div>
@@ -284,21 +236,6 @@ function Dashboard({ email }: { email?: string | undefined }) {
                           <li key={i.id}>{i.quantity}× {clean(i.name)} <span className="text-xs text-muted-foreground">({parseOptions(i.options).map((x) => x.value).join(" / ")}) · SKU {i.sku} · {brl(Number(i.unit_price))}</span></li>
                         ))}
                       </ul>
-                      {o.payment_status === "approved" && (
-                        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3 text-xs">
-                          {o.me_shipment_id ? (
-                            <span>Etiqueta: envio criado no Melhor Envio. <a href="https://melhorenvio.com.br/painel/carrinho" target="_blank" rel="noreferrer" className="underline">Abrir carrinho para pagar e imprimir</a></span>
-                          ) : (
-                            <button type="button" disabled={labelBusy === o.id} onClick={() => makeLabel(o.id)} className="btn-outline px-4 py-2 disabled:opacity-50">
-                              {labelBusy === o.id ? "Criando…" : "Criar etiqueta no Melhor Envio"}
-                            </button>
-                          )}
-                          <label className="flex items-center gap-2">
-                            Rastreio:
-                            <input defaultValue={o.tracking_code ?? ""} placeholder="código dos Correios etc." onBlur={(e) => e.target.value.trim() !== (o.tracking_code ?? "") && saveTracking(o.id, e.target.value)} className="w-48 border border-border bg-background px-2 py-1" />
-                          </label>
-                        </div>
-                      )}
                       <label className="flex items-center gap-2 text-xs">
                         Andamento:
                         <select value={o.status} onChange={(e) => setOrderStatus(o.id, e.target.value)} className="border border-border bg-background px-2 py-1">
@@ -311,18 +248,6 @@ function Dashboard({ email }: { email?: string | undefined }) {
               );
             })}
           </ul>
-        ) : tab === "newsletter" ? (
-          <div className="mt-6">
-            <p className="text-sm text-muted-foreground">{subs.isLoading ? "Carregando…" : subs.isError ? "Não foi possível carregar (a migração 0005 já foi aplicada?)." : `${subs.data?.length ?? 0} inscrita(s)`}</p>
-            {!!subs.data?.length && (
-              <>
-                <button type="button" onClick={() => { navigator.clipboard.writeText(subs.data!.map((x) => x.email).join(", ")); toast.success("E-mails copiados"); }} className="btn-outline mt-3 px-4 py-2 text-xs">Copiar todos os e-mails</button>
-                <ul className="mt-4 divide-y divide-border border border-border text-sm">
-                  {subs.data.map((x) => <li key={x.id} className="flex justify-between p-3"><span>{x.email}</span><span className="text-xs text-muted-foreground">{formatOrderDate(x.created_at)}</span></li>)}
-                </ul>
-              </>
-            )}
-          </div>
         ) : tab === "problemas" ? (
           <table className="mt-6 w-full text-left text-sm">
             <thead className="text-xs text-muted-foreground"><tr><th className="py-2">Linha</th><th>SKU</th><th>Produto</th><th>Problema</th></tr></thead>
@@ -334,14 +259,6 @@ function Dashboard({ email }: { email?: string | undefined }) {
           </table>
         ) : (
           <>
-            {creating ? (
-              <AdminProductForm
-                onCancel={() => setCreating(false)}
-                onDone={() => { setCreating(false); qc.invalidateQueries({ queryKey: ["admin-products"] }); qc.invalidateQueries({ queryKey: ["admin-stats"] }); }}
-              />
-            ) : (
-              <button type="button" onClick={() => setCreating(true)} className="btn-primary mt-6">+ Novo produto</button>
-            )}
             <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Buscar produto…" className="mt-6 w-full border border-border bg-transparent px-4 py-2.5 text-sm outline-none focus:border-foreground" />
             <ul className="mt-4 divide-y divide-border border border-border">
               {list.isLoading && <li className="p-6 text-sm text-muted-foreground">Carregando…</li>}
@@ -379,10 +296,6 @@ function Dashboard({ email }: { email?: string | undefined }) {
                             ))}
                           </tbody>
                         </table>
-                        <div className="mt-3 flex gap-4 text-xs">
-                          <button type="button" onClick={() => toggleStatus(p.id, p.status)} className="underline">{p.status === "active" ? "Desativar (esconder da loja)" : "Ativar (mostrar na loja)"}</button>
-                          <button type="button" onClick={() => removeProduct(p.id, p.name)} className="text-destructive underline">Excluir produto</button>
-                        </div>
                       </div>
                     )}
                   </li>

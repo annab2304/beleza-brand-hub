@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { authErrorMessage } from "@/lib/auth";
+import { getCustomerProfile, lookupCep, saveCustomerProfile } from "@/lib/customer.functions";
+import { addressSchema, customerSchema, savedAddress } from "@/lib/customer-data";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuthUser } from "@/lib/auth";
-import { isValidCpf } from "@/lib/cpf";
 import { createCheckout, getShippingOptions } from "@/lib/checkout.functions";
 import type { ShippingOption } from "@/lib/shipping.config";
 import { brl, clean } from "@/lib/catalog";
@@ -18,6 +21,11 @@ export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
       { title: "Finalizar compra — Beleza em Detalhes" },
+      { name: "description", content: "Seus dados, entrega e pagamento na Beleza em Detalhes." },
+      { property: "og:title", content: "Finalizar compra — Beleza em Detalhes" },
+      { property: "og:description", content: "Conclua sua compra de semijoias com segurança." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -31,8 +39,12 @@ function CheckoutPage() {
   const { cart, subtotal } = useStore();
   const user = useAuthUser();
   const [busy, setBusy] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState(false);
+  const [postalMessage, setPostalMessage] = useState("");
+  const [profileLoading, setProfileLoading] = useState(false);
   const [f, setF] = useState({
-    name: "", email: "", phone: "", document: "",
+    name: "", email: "", phone: "",
     cep: "", street: "", number: "", complement: "", neighborhood: "", city: "", state: "",
   });
   const [quote, setQuote] = useState<{ status: "idle" | "loading" | "ok" | "error"; options: ShippingOption[]; message?: string }>({ status: "idle", options: [] });
@@ -42,43 +54,33 @@ function CheckoutPage() {
   // Se estiver logada, já preenche nome e e-mail.
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
+    setConfirmation(false);
+    setProfileLoading(true);
     const fullName = (user.user_metadata as { full_name?: string } | undefined)?.full_name ?? "";
     setF((s) => ({ ...s, name: s.name || fullName, email: s.email || user.email || "" }));
-  }, [user]);
-
-  // Preenche telefone e endereço salvos na conta (compras anteriores).
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    supabase
-      .from("profiles")
-      .select("full_name,phone,shipping_address")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled || !data) return;
-        const a = (data.shipping_address ?? {}) as Record<string, string | undefined>;
-        setF((s) => ({
-          ...s,
-          name: s.name || data.full_name || "",
-          phone: s.phone || data.phone || "",
-          document: s.document || a["document"] || "",
-          cep: s.cep || a["cep"] || "",
-          street: s.street || a["street"] || "",
-          number: s.number || a["number"] || "",
-          complement: s.complement || a["complement"] || "",
-          neighborhood: s.neighborhood || a["neighborhood"] || "",
-          city: s.city || a["city"] || "",
-          state: s.state || a["state"] || "",
-        }));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
+    getCustomerProfile().then((profile) => {
+      if (cancelled || !profile) return;
+      const address = savedAddress(profile.shipping_address);
+      setF((s) => ({ ...s, ...address, name: profile.full_name || s.name, phone: profile.phone || s.phone }));
+    }).catch(() => { if (!cancelled) toast.error("Não foi possível carregar seus dados salvos. Preencha abaixo."); })
+      .finally(() => { if (!cancelled) setProfileLoading(false); });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // Calcula o frete (Melhor Envio) sempre que o CEP completo ou a sacola mudam.
   const cepDigits = digits(f.cep);
+  useEffect(() => {
+    if (cepDigits.length !== 8) { setPostalMessage(""); return; }
+    let cancelled = false;
+    setPostalMessage("Buscando endereço…");
+    lookupCep({ data: { cep: cepDigits } }).then((address) => {
+      if (cancelled) return;
+      setF((s) => ({ ...s, ...address }));
+      setPostalMessage(address.street ? "Endereço encontrado." : "Informe a rua e o bairro para este CEP.");
+    }).catch(() => { if (!cancelled) setPostalMessage("Não foi possível encontrar o CEP. Confira ou preencha o endereço manualmente."); });
+    return () => { cancelled = true; };
+  }, [cepDigits]);
   const cartKey = cart.map((i) => `${i.variant_id}:${i.quantity}`).join(",");
   useEffect(() => {
     setServiceId(null);
@@ -108,13 +110,27 @@ function CheckoutPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
-    if (!chosen) { toast.error("Escolha uma opção de frete para continuar."); return; }
-    if (!isValidCpf(f.document)) { toast.error("CPF inválido. Confira os números."); return; }
     setBusy(true);
     try {
+      const customer = customerSchema.parse({ name: f.name, email: f.email, phone: digits(f.phone) });
+      const address = addressSchema.parse({ ...f, cep: digits(f.cep), state: f.state.toUpperCase() });
+      if (!user) {
+        const { data, error } = await supabase.auth.signUp({
+          email: customer.email, password,
+          options: { emailRedirectTo: `${window.location.origin}/checkout`, data: {
+            full_name: customer.name, phone: customer.phone, shipping_address: address,
+          } },
+        });
+        if (error) throw error;
+        setPassword("");
+        if (!data.session) setConfirmation(true);
+        return;
+      }
+      if (!chosen) throw new Error("Escolha uma opção de frete para continuar.");
+      await saveCustomerProfile({ data: { customer, address } });
       const { checkoutUrl } = await createCheckout({
         data: {
-          customer: { name: f.name, email: f.email, phone: digits(f.phone), document: digits(f.document) },
+          customer: { name: f.name, email: f.email, phone: digits(f.phone) },
           address: {
             cep: digits(f.cep), street: f.street, number: f.number,
             ...(f.complement.trim() ? { complement: f.complement } : {}),
@@ -126,7 +142,8 @@ function CheckoutPage() {
       });
       window.location.href = checkoutUrl; // segue para o pagamento seguro no Mercado Pago
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível finalizar. Tente novamente.");
+      toast.error(authErrorMessage(err instanceof Error ? err.message : "Não foi possível finalizar. Tente novamente."));
+    } finally {
       setBusy(false);
     }
   };
@@ -137,20 +154,7 @@ function CheckoutPage() {
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <h1 className="text-center text-4xl sm:text-5xl">Finalizar <span className="script text-cafe">compra</span></h1>
 
-        {user === undefined ? (
-          <p className="py-16 text-center text-sm text-muted-foreground">Carregando…</p>
-        ) : user === null ? (
-          <div className="mx-auto max-w-md py-12 text-center">
-            <p className="script text-4xl text-cafe">entre para finalizar</p>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Para comprar, você precisa ter uma conta. Assim você acompanha seus pedidos e não precisa preencher tudo de novo na próxima vez. Sua sacola fica guardada.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-              <Link to="/login" search={{ redirect: "/checkout" }} className="btn-primary">Entrar</Link>
-              <Link to="/cadastro" search={{ redirect: "/checkout" }} className="btn-primary">Criar conta</Link>
-            </div>
-          </div>
-        ) : cart.length === 0 ? (
+        {cart.length === 0 ? (
           <div className="py-16 text-center">
             <p className="script text-4xl text-cafe">sua sacola está vazia</p>
             <Link to="/categoria/$slug" params={{ slug: "todos" }} className="btn-primary mt-8">Explorar a coleção</Link>
@@ -160,12 +164,17 @@ function CheckoutPage() {
             <div className="space-y-10">
               <section>
                 <h2 className="text-2xl">Seus dados</h2>
+                {!user && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Já tem conta? <Link to="/login" search={{ redirect: "/checkout" }} className="underline">Entrar</Link>
+                  </p>
+                )}
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <input required autoComplete="name" placeholder="Nome completo" value={f.name} onChange={set("name")} className={`${FIELD} sm:col-span-2`} />
                   <input required type="email" autoComplete="email" placeholder="E-mail" value={f.email} onChange={set("email")} className={FIELD} />
                   <input required type="tel" inputMode="tel" autoComplete="tel" placeholder="Telefone com DDD" value={f.phone} onChange={set("phone")} className={FIELD} />
-                  <input required inputMode="numeric" placeholder="CPF (para a nota de envio)" value={f.document} onChange={set("document")} className={`${FIELD} sm:col-span-2`} />
                 </div>
+                {profileLoading && <p className="mt-3 text-sm text-muted-foreground">Carregando seus dados salvos…</p>}
               </section>
 
               <section>
@@ -179,7 +188,19 @@ function CheckoutPage() {
                   <input required autoComplete="address-level2" placeholder="Cidade" value={f.city} onChange={set("city")} className={`${FIELD} sm:col-span-2`} />
                   <input required maxLength={2} autoComplete="address-level1" placeholder="UF" value={f.state} onChange={set("state")} className={`${FIELD} uppercase sm:col-span-1`} />
                 </div>
+                <p role="status" className="mt-2 text-xs text-muted-foreground">{postalMessage}</p>
               </section>
+
+              {!user && <section>
+                <h2 className="text-2xl">Sua conta</h2>
+                {confirmation ? <div role="status" className="mt-4 space-y-3 text-sm">
+                  <p>Confira seu e-mail para confirmar a conta e continuar a compra. Seus dados foram salvos.</p>
+                  <Link to="/login" search={{ redirect: "/checkout" }} className="underline">Já confirmei meu e-mail — entrar</Link>
+                </div> : <>
+                  <input required type="password" minLength={6} maxLength={128} autoComplete="new-password" placeholder="Crie uma senha" value={password} onChange={(e) => setPassword(e.target.value)} className={`${FIELD} mt-4`} />
+                  <p className="mt-2 text-xs text-muted-foreground">Ao criar a conta, seu nome, telefone e endereço ficam salvos para as próximas compras.</p>
+                </>}
+              </section>}
 
               <section>
                 <h2 className="text-2xl">Entrega</h2>
@@ -240,9 +261,9 @@ function CheckoutPage() {
                 <div className="flex justify-between"><dt>Frete</dt><dd className={chosen ? "" : "text-muted-foreground"}>{chosen ? brl(chosen.price) : "informe o CEP"}</dd></div>
                 <div className="flex justify-between border-t border-border pt-3 text-base font-medium"><dt>Total</dt><dd>{brl(total)}</dd></div>
               </dl>
-              <button type="submit" disabled={busy || !chosen} className="btn-primary mt-6 w-full disabled:opacity-50">
-                {busy ? "Aguarde…" : "Pagar com Mercado Pago"}
-              </button>
+              <Button type="submit" disabled={busy || profileLoading || user === undefined || confirmation || (!!user && !chosen)} className="btn-primary mt-6 h-auto w-full whitespace-normal rounded-none disabled:opacity-50">
+                {busy ? "Aguarde…" : user ? "Pagar com Mercado Pago" : confirmation ? "Confirme seu e-mail" : "Criar conta e continuar"}
+              </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">
                 Dúvidas? <a href={whatsappUrl("Olá! Tenho uma dúvida sobre a minha compra.")} target="_blank" rel="noreferrer" className="underline">Fale no WhatsApp</a>
               </p>

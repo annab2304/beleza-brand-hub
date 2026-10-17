@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Project rules
+- Customer profiles are owner-only; checkout requires validated authentication and address lookup runs through a public server function, keeping saved customer data private.
 - Catalog lives in Lovable Cloud: products → product_variants (one row per SKU) → product_images; categories normalized. Never store a variant as its own product.
 - Supplier/cost data lives only in variant_supplier_info (admin-only RLS); public queries must never select it.
 - own_stock (variants) is the store's stock and stays independent from supplier_stock.

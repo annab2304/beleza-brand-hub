@@ -17,9 +17,6 @@ import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FavoritosRouteImport } from './routes/favoritos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MinhaContaRouteImport } from './routes/minha-conta'
-import { Route as PrivacidadeRouteImport } from './routes/privacidade'
-import { Route as TermosRouteImport } from './routes/termos'
-import { Route as TrocasEDevolucoesRouteImport } from './routes/trocas-e-devolucoes'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
@@ -65,21 +62,6 @@ const MinhaContaRoute = MinhaContaRouteImport.update({
   path: '/minha-conta',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PrivacidadeRoute = PrivacidadeRouteImport.update({
-  id: '/privacidade',
-  path: '/privacidade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermosRoute = TermosRouteImport.update({
-  id: '/termos',
-  path: '/termos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TrocasEDevolucoesRoute = TrocasEDevolucoesRouteImport.update({
-  id: '/trocas-e-devolucoes',
-  path: '/trocas-e-devolucoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
   id: '/categoria/$slug',
   path: '/categoria/$slug',
@@ -110,9 +92,6 @@ export interface FileRoutesByFullPath {
   '/favoritos': typeof FavoritosRoute
   '/login': typeof LoginRoute
   '/minha-conta': typeof MinhaContaRoute
-  '/privacidade': typeof PrivacidadeRoute
-  '/termos': typeof TermosRoute
-  '/trocas-e-devolucoes': typeof TrocasEDevolucoesRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$slug': typeof ProdutoSlugRoute
@@ -127,9 +106,6 @@ export interface FileRoutesByTo {
   '/favoritos': typeof FavoritosRoute
   '/login': typeof LoginRoute
   '/minha-conta': typeof MinhaContaRoute
-  '/privacidade': typeof PrivacidadeRoute
-  '/termos': typeof TermosRoute
-  '/trocas-e-devolucoes': typeof TrocasEDevolucoesRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$slug': typeof ProdutoSlugRoute
@@ -145,9 +121,6 @@ export interface FileRoutesById {
   '/favoritos': typeof FavoritosRoute
   '/login': typeof LoginRoute
   '/minha-conta': typeof MinhaContaRoute
-  '/privacidade': typeof PrivacidadeRoute
-  '/termos': typeof TermosRoute
-  '/trocas-e-devolucoes': typeof TrocasEDevolucoesRoute
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$slug': typeof ProdutoSlugRoute
@@ -164,9 +137,6 @@ export interface FileRouteTypes {
     | '/favoritos'
     | '/login'
     | '/minha-conta'
-    | '/privacidade'
-    | '/termos'
-    | '/trocas-e-devolucoes'
     | '/categoria/$slug'
     | '/pedido/$id'
     | '/produto/$slug'
@@ -181,9 +151,6 @@ export interface FileRouteTypes {
     | '/favoritos'
     | '/login'
     | '/minha-conta'
-    | '/privacidade'
-    | '/termos'
-    | '/trocas-e-devolucoes'
     | '/categoria/$slug'
     | '/pedido/$id'
     | '/produto/$slug'
@@ -198,9 +165,6 @@ export interface FileRouteTypes {
     | '/favoritos'
     | '/login'
     | '/minha-conta'
-    | '/privacidade'
-    | '/termos'
-    | '/trocas-e-devolucoes'
     | '/categoria/$slug'
     | '/pedido/$id'
     | '/produto/$slug'
@@ -216,9 +180,6 @@ export interface RootRouteChildren {
   FavoritosRoute: typeof FavoritosRoute
   LoginRoute: typeof LoginRoute
   MinhaContaRoute: typeof MinhaContaRoute
-  PrivacidadeRoute: typeof PrivacidadeRoute
-  TermosRoute: typeof TermosRoute
-  TrocasEDevolucoesRoute: typeof TrocasEDevolucoesRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
@@ -283,27 +244,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MinhaContaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/privacidade': {
-      id: '/privacidade'
-      path: '/privacidade'
-      fullPath: '/privacidade'
-      preLoaderRoute: typeof PrivacidadeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/termos': {
-      id: '/termos'
-      path: '/termos'
-      fullPath: '/termos'
-      preLoaderRoute: typeof TermosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/trocas-e-devolucoes': {
-      id: '/trocas-e-devolucoes'
-      path: '/trocas-e-devolucoes'
-      fullPath: '/trocas-e-devolucoes'
-      preLoaderRoute: typeof TrocasEDevolucoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/categoria/$slug': {
       id: '/categoria/$slug'
       path: '/categoria/$slug'
@@ -344,9 +284,6 @@ const rootRouteChildren: RootRouteChildren = {
   FavoritosRoute: FavoritosRoute,
   LoginRoute: LoginRoute,
   MinhaContaRoute: MinhaContaRoute,
-  PrivacidadeRoute: PrivacidadeRoute,
-  TermosRoute: TermosRoute,
-  TrocasEDevolucoesRoute: TrocasEDevolucoesRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,

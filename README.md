@@ -65,18 +65,3 @@ As migrações `drizzle/migrations/0001_orders.sql` (pedidos) e `0002_shipping.s
 ### Contato
 
 Número do WhatsApp e Instagram ficam em `src/lib/contact.ts`.
-
-## Segredos adicionais (Lovable → Cloud → Secrets)
-
-| Nome | Obrigatório | Para quê |
-|---|---|---|
-| `MELHORENVIO_SENDER` | para etiquetas | JSON com os dados de quem envia: `{"name","phone","email","document"(CPF),"address","number","complement","district","city","state_abbr","postal_code"}` |
-| `RESEND_API_KEY` | para e-mail de confirmação | Chave do Resend. Sem ela nenhum e-mail é enviado |
-| `RESEND_FROM` | opcional | Remetente, ex.: `Beleza em Detalhes <pedidos@seudominio.com.br>` (domínio verificado no Resend) |
-
-## Migrações novas
-- `0005_newsletter_e_etiqueta.sql`: tabela da newsletter e colunas de etiqueta/rastreio nos pedidos.
-- `0006_remove_kit_revenda.sql`: apaga os produtos "Kit Revenda…".
-
-## Etiqueta de envio
-No painel, pedido pago → **Criar etiqueta no Melhor Envio** coloca o envio no carrinho do Melhor Envio (sem gastar saldo). O pagamento e a impressão da etiqueta são feitos no painel deles.

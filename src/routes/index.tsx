@@ -15,7 +15,6 @@ import { SiteHeader } from "@/components/site-header";
 import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/contact";
 import { categoriesQuery, productsQuery, type ProductCardData } from "@/lib/catalog";
 import { toast } from "sonner";
-import { subscribeNewsletter } from "@/lib/newsletter.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -228,7 +227,8 @@ function Index() {
             <h2 className="mt-4 text-4xl sm:text-5xl">Beleza em <span className="script text-cafe">Detalhes</span></h2>
             <div className="gold-rule mt-6 w-12" />
             <p className="mt-6 max-w-md leading-relaxed text-muted-foreground">
-              Somos uma marca de semijoias para quem gosta de delicadeza e estilo no dia a dia. Cada peça é escolhida com carinho, com acabamento de qualidade, para acompanhar você do básico ao especial — porque são os detalhes que contam a sua história.
+              {/* Texto provisório — substituir pela apresentação oficial da marca */}
+              Espaço reservado para a apresentação da marca. Aqui entra, com as suas palavras, o que torna cada peça especial.
             </p>
           </div>
         </div>
@@ -261,16 +261,11 @@ function Index() {
           <h2 className="mt-1 text-3xl sm:text-4xl">Novidades em primeira mão</h2>
           <form
             className="mt-8 flex flex-col gap-3 sm:flex-row"
-            onSubmit={async (e) => {
+            onSubmit={(e) => {
               e.preventDefault();
               if (!email.includes("@")) { toast.error("Digite um e-mail válido"); return; }
-              try {
-                await subscribeNewsletter({ data: { email } });
-                toast.success("Obrigada! Você receberá nossas novidades.");
-                setEmail("");
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Não foi possível cadastrar agora. Tente de novo.");
-              }
+              toast.success("Obrigada! Você receberá nossas novidades.");
+              setEmail("");
             }}
           >
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Seu melhor e-mail" className="flex-1 border border-foreground/20 bg-ivory px-4 py-3.5 text-sm outline-none focus:border-foreground" />

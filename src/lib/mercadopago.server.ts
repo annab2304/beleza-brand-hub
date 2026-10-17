@@ -4,20 +4,13 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const MP_API = "https://api.mercadopago.com";
 
-// Aceita alguns nomes alternativos, caso o segredo tenha sido salvo com outro nome.
-const TOKEN_NAMES = ["MERCADOPAGO_ACCESS_TOKEN", "MERCADOPAGO_ACESS_TOKEN", "MERCADO_PAGO_ACCESS_TOKEN", "MP_ACCESS_TOKEN", "MERCADOPAGO_TOKEN", "MERCADO_PAGO_TOKEN"];
-
 function accessToken(): string {
-  const found = TOKEN_NAMES.map((n) => process.env[n]?.trim()).find((v) => v);
-  if (!found) {
-    // Só NOMES de variáveis parecidas (nunca valores) para ajudar a achar o erro de digitação.
-    const similar = Object.keys(process.env).filter((k) => /mercado|mp_|pago/i.test(k));
-    console.error("[MercadoPago] token não configurado. Variáveis parecidas:", similar);
-    throw new Error(
-      `Pagamento indisponível (código MP-SEM-TOKEN; segredos parecidos que o site vê: ${similar.length ? similar.join(", ") : "nenhum"}). Fale com a gente pelo WhatsApp.`,
-    );
+  const token = process.env["MERCADOPAGO_ACCESS_TOKEN"];
+  if (!token) {
+    console.error("[MercadoPago] MERCADOPAGO_ACCESS_TOKEN não configurado.");
+    throw new Error("Pagamento indisponível no momento. Fale com a gente pelo WhatsApp.");
   }
-  return found;
+  return token;
 }
 
 export type MpPreferenceItem = { id: string; title: string; quantity: number; unit_price: number };
@@ -25,7 +18,7 @@ export type MpPreferenceItem = { id: string; title: string; quantity: number; un
 export async function createPreference(args: {
   orderId: string;
   items: MpPreferenceItem[];
-  payer: { name: string; email: string; cpf?: string | undefined };
+  payer: { name: string; email: string };
   origin: string;
 }): Promise<{ id: string; init_point: string }> {
   const { orderId, items, payer, origin } = args;
@@ -34,9 +27,9 @@ export async function createPreference(args: {
 
   const body: Record<string, unknown> = {
     items: items.map((i) => ({ ...i, currency_id: "BRL" })),
-    payer: { name: payer.name, email: payer.email, ...(payer.cpf ? { identification: { type: "CPF", number: payer.cpf } } : {}) },
+    payer: { name: payer.name, email: payer.email },
     external_reference: orderId,
-    statement_descriptor: "BELEZA DETALHES", // o Mercado Pago aceita no máximo 16 caracteres
+    statement_descriptor: "BELEZA EM DETALHES",
     back_urls: { success: returnUrl, pending: returnUrl, failure: returnUrl },
   };
   // O Mercado Pago só aceita retorno automático e webhook em endereços HTTPS públicos.
@@ -55,12 +48,8 @@ export async function createPreference(args: {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    const detail = await res.text();
-    console.error("[MercadoPago] erro ao criar preferência", res.status, detail);
-    let msg = "";
-    try { msg = (JSON.parse(detail) as { message?: string }).message ?? ""; } catch { /* sem JSON */ }
-    // Código + mensagem do Mercado Pago (nunca inclui o token) para facilitar o diagnóstico.
-    throw new Error(`Não foi possível iniciar o pagamento (código MP-${res.status}${msg ? `: ${msg.slice(0, 140)}` : ""}).`);
+    console.error("[MercadoPago] erro ao criar preferência", res.status, await res.text());
+    throw new Error("Não foi possível iniciar o pagamento. Tente novamente.");
   }
   const json = (await res.json()) as { id?: string; init_point?: string };
   if (!json.id || !json.init_point) throw new Error("Resposta inesperada do Mercado Pago.");
@@ -125,11 +114,6 @@ export async function syncPayment(paymentId: string): Promise<{ orderId: string 
       p_payment_id: String(payment.id),
     });
     if (error) throw new Error(error.message);
-    if (data === true) {
-      // Só na primeira confirmação (mark_order_paid é idempotente): avisa a cliente por e-mail.
-      const { sendOrderConfirmation } = await import("@/lib/email.server");
-      await sendOrderConfirmation(orderId);
-    }
     return { orderId, changed: data === true };
   }
 

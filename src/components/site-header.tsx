@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 
 import logoBd from "@/assets/logo-bd.png";
 import { useStore } from "@/lib/store";
@@ -33,16 +32,6 @@ export function SiteHeader() {
     window.addEventListener("scroll", on, { passive: true });
     return () => window.removeEventListener("scroll", on);
   }, []);
-
-  // Com o menu aberto, a página de trás não rola.
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,9 +104,8 @@ export function SiteHeader() {
         </nav>
       </div>
 
-      {/* Em portal: o header tem backdrop-blur, que prenderia o "fixed" dentro da barra e esconderia as opções. */}
-      {open && createPortal(
-        <div className="reveal fixed inset-0 z-[60] overflow-y-auto bg-background lg:hidden">
+      {open && (
+        <div className="reveal fixed inset-0 z-50 overflow-y-auto bg-background lg:hidden">
           <div className="flex items-center justify-between border-b border-border px-4 py-4">
             <span className="script text-3xl text-cafe">menu</span>
             <button type="button" aria-label="Fechar menu" onClick={() => setOpen(false)}><X className="h-5 w-5" strokeWidth={1.25} /></button>
@@ -138,8 +126,7 @@ export function SiteHeader() {
               <Link to="/faq" onClick={() => setOpen(false)} className="block py-4 text-sm uppercase tracking-[0.2em]">Dúvidas frequentes</Link>
             </li>
           </ul>
-        </div>,
-        document.body,
+        </div>
       )}
     </header>
   );
