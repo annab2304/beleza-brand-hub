@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 const MP_API = "https://api.mercadopago.com";
 
 // Aceita alguns nomes alternativos, caso o segredo tenha sido salvo com outro nome.
-const TOKEN_NAMES = ["MERCADOPAGO_ACCESS_TOKEN", "MERCADO_PAGO_ACCESS_TOKEN", "MP_ACCESS_TOKEN", "MERCADOPAGO_TOKEN", "MERCADO_PAGO_TOKEN"];
+const TOKEN_NAMES = ["MERCADOPAGO_ACCESS_TOKEN", "MERCADOPAGO_ACESS_TOKEN", "MERCADO_PAGO_ACCESS_TOKEN", "MP_ACCESS_TOKEN", "MERCADOPAGO_TOKEN", "MERCADO_PAGO_TOKEN"];
 
 function accessToken(): string {
   const found = TOKEN_NAMES.map((n) => process.env[n]?.trim()).find((v) => v);
