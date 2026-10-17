@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest, getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 // Este arquivo vai para o bundle do navegador: o código sensível fica dentro dos
 // handlers e é carregado com import() dinâmico (somente no servidor).
@@ -40,20 +41,15 @@ function siteOrigin(): string {
 }
 
 export const createCheckout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(checkoutInput)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { createPreference } = await import("@/lib/mercadopago.server");
     const { loadOrderLines, sumLines } = await import("@/lib/order-lines.server");
     const { quoteShipping } = await import("@/lib/melhorenvio.server");
 
-    // Login é opcional: se houver sessão válida, o pedido fica ligado à conta.
-    let userId: string | null = null;
-    const bearer = getRequestHeader("authorization");
-    if (bearer?.startsWith("Bearer ")) {
-      const { data: u } = await supabaseAdmin.auth.getUser(bearer.slice(7));
-      userId = u.user?.id ?? null;
-    }
+    const userId = context.userId;
 
     // Preços e dados do produto SEMPRE do banco — nunca confiar no que o navegador manda.
     const lines = await loadOrderLines(data.items);
