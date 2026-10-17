@@ -25,7 +25,7 @@ export type MpPreferenceItem = { id: string; title: string; quantity: number; un
 export async function createPreference(args: {
   orderId: string;
   items: MpPreferenceItem[];
-  payer: { name: string; email: string };
+  payer: { name: string; email: string; cpf?: string | undefined };
   origin: string;
 }): Promise<{ id: string; init_point: string }> {
   const { orderId, items, payer, origin } = args;
@@ -34,7 +34,7 @@ export async function createPreference(args: {
 
   const body: Record<string, unknown> = {
     items: items.map((i) => ({ ...i, currency_id: "BRL" })),
-    payer: { name: payer.name, email: payer.email },
+    payer: { name: payer.name, email: payer.email, ...(payer.cpf ? { identification: { type: "CPF", number: payer.cpf } } : {}) },
     external_reference: orderId,
     statement_descriptor: "BELEZA DETALHES", // o Mercado Pago aceita no máximo 16 caracteres
     back_urls: { success: returnUrl, pending: returnUrl, failure: returnUrl },
@@ -125,6 +125,11 @@ export async function syncPayment(paymentId: string): Promise<{ orderId: string 
       p_payment_id: String(payment.id),
     });
     if (error) throw new Error(error.message);
+    if (data === true) {
+      // Só na primeira confirmação (mark_order_paid é idempotente): avisa a cliente por e-mail.
+      const { sendOrderConfirmation } = await import("@/lib/email.server");
+      await sendOrderConfirmation(orderId);
+    }
     return { orderId, changed: data === true };
   }
 

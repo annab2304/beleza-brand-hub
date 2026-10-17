@@ -17,3 +17,5 @@ create policy "admin deletes newsletter" on public.newsletter_subscribers
 alter table public.orders add column me_shipment_id text;
 alter table public.orders add column tracking_code text;
 alter table public.orders add column shipping_service_id int;
+-- O painel (admin) pode registrar o código de rastreio.
+grant update (tracking_code) on public.orders to authenticated;

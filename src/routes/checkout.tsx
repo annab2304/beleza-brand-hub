@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthUser } from "@/lib/auth";
+import { isValidCpf } from "@/lib/cpf";
 import { createCheckout, getShippingOptions } from "@/lib/checkout.functions";
 import type { ShippingOption } from "@/lib/shipping.config";
 import { brl, clean } from "@/lib/catalog";
@@ -31,7 +32,7 @@ function CheckoutPage() {
   const user = useAuthUser();
   const [busy, setBusy] = useState(false);
   const [f, setF] = useState({
-    name: "", email: "", phone: "",
+    name: "", email: "", phone: "", document: "",
     cep: "", street: "", number: "", complement: "", neighborhood: "", city: "", state: "",
   });
   const [quote, setQuote] = useState<{ status: "idle" | "loading" | "ok" | "error"; options: ShippingOption[]; message?: string }>({ status: "idle", options: [] });
@@ -61,6 +62,7 @@ function CheckoutPage() {
           ...s,
           name: s.name || data.full_name || "",
           phone: s.phone || data.phone || "",
+          document: s.document || a["document"] || "",
           cep: s.cep || a["cep"] || "",
           street: s.street || a["street"] || "",
           number: s.number || a["number"] || "",
@@ -107,11 +109,12 @@ function CheckoutPage() {
     e.preventDefault();
     if (busy) return;
     if (!chosen) { toast.error("Escolha uma opção de frete para continuar."); return; }
+    if (!isValidCpf(f.document)) { toast.error("CPF inválido. Confira os números."); return; }
     setBusy(true);
     try {
       const { checkoutUrl } = await createCheckout({
         data: {
-          customer: { name: f.name, email: f.email, phone: digits(f.phone) },
+          customer: { name: f.name, email: f.email, phone: digits(f.phone), document: digits(f.document) },
           address: {
             cep: digits(f.cep), street: f.street, number: f.number,
             ...(f.complement.trim() ? { complement: f.complement } : {}),
@@ -161,6 +164,7 @@ function CheckoutPage() {
                   <input required autoComplete="name" placeholder="Nome completo" value={f.name} onChange={set("name")} className={`${FIELD} sm:col-span-2`} />
                   <input required type="email" autoComplete="email" placeholder="E-mail" value={f.email} onChange={set("email")} className={FIELD} />
                   <input required type="tel" inputMode="tel" autoComplete="tel" placeholder="Telefone com DDD" value={f.phone} onChange={set("phone")} className={FIELD} />
+                  <input required inputMode="numeric" placeholder="CPF (para a nota de envio)" value={f.document} onChange={set("document")} className={`${FIELD} sm:col-span-2`} />
                 </div>
               </section>
 

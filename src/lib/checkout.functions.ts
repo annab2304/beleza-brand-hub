@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest, getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 
+import { isValidCpf } from "@/lib/cpf";
+
 // Este arquivo vai para o bundle do navegador: o código sensível fica dentro dos
 // handlers e é carregado com import() dinâmico (somente no servidor).
 
@@ -15,6 +17,8 @@ const checkoutInput = z.object({
     name: z.string().trim().min(3, "Informe seu nome completo").max(120),
     email: z.string().trim().email("E-mail inválido").max(160),
     phone: z.string().trim().regex(/^\d{10,11}$/, "Telefone com DDD, só números"),
+    // CPF é exigido pela transportadora para emitir a etiqueta de envio.
+    document: z.string().trim().refine(isValidCpf, "CPF inválido").transform((v) => v.replace(/\D/g, "")),
   }),
   address: z.object({
     cep: z.string().trim().regex(/^\d{5}-?\d{3}$/, "CEP inválido"),
@@ -71,23 +75,27 @@ export const createCheckout = createServerFn({ method: "POST" })
     const total = Math.round((subtotal + shippingCost) * 100) / 100;
     if (total <= 0) throw new Error("Valor do pedido inválido.");
 
-    const { data: order, error: orderError } = await supabaseAdmin
+    const orderRow = {
+      user_id: userId,
+      email: data.customer.email.toLowerCase(),
+      customer_name: data.customer.name,
+      customer_phone: data.customer.phone,
+      shipping_address: { ...data.address, document: data.customer.document },
+      subtotal,
+      shipping_cost: shippingCost,
+      shipping_service: `${shipping.company} ${shipping.name}`.trim(),
+      shipping_days: shipping.days,
+      total,
+    };
+    let { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .insert({
-        user_id: userId,
-        email: data.customer.email.toLowerCase(),
-        customer_name: data.customer.name,
-        customer_phone: data.customer.phone,
-        shipping_address: data.address,
-        subtotal,
-        shipping_cost: shippingCost,
-        shipping_service: `${shipping.company} ${shipping.name}`.trim(),
-        shipping_days: shipping.days,
-        shipping_service_id: shipping.id,
-        total,
-      })
+      .insert({ ...orderRow, shipping_service_id: shipping.id })
       .select("id")
       .single();
+    // Enquanto a migração 0005 não foi aplicada, a coluna nova não existe: segue sem ela.
+    if (orderError?.message?.includes("shipping_service_id")) {
+      ({ data: order, error: orderError } = await supabaseAdmin.from("orders").insert(orderRow).select("id").single());
+    }
     if (orderError || !order) throw new Error("Não foi possível registrar o pedido. Tente novamente.");
 
     // Guarda nome, telefone e endereço na conta para preencher as próximas compras.
@@ -95,7 +103,7 @@ export const createCheckout = createServerFn({ method: "POST" })
       id: userId,
       full_name: data.customer.name,
       phone: data.customer.phone,
-      shipping_address: data.address,
+      shipping_address: { ...data.address, document: data.customer.document },
       updated_at: new Date().toISOString(),
     });
 
@@ -120,7 +128,7 @@ export const createCheckout = createServerFn({ method: "POST" })
             ? [{ id: "FRETE", title: `Frete - ${shipping.company} ${shipping.name}`.trim().slice(0, 250), quantity: 1, unit_price: shippingCost }]
             : []),
         ],
-        payer: { name: data.customer.name, email: data.customer.email },
+        payer: { name: data.customer.name, email: data.customer.email, cpf: data.customer.document },
         origin: siteOrigin(),
       });
       await supabaseAdmin.from("orders").update({ mp_preference_id: pref.id }).eq("id", order.id);

@@ -34,6 +34,7 @@ type OrderRow = {
   created_at: string;
   status: string;
   payment_status: string;
+  tracking_code?: string | null;
   total: number;
   order_items: OrderItemRow[];
 };
@@ -53,7 +54,7 @@ function AccountPage() {
     queryFn: async (): Promise<OrderRow[]> => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id,order_number,created_at,status,payment_status,total,order_items(id,name,options,image_url,unit_price,quantity)")
+        .select("id,order_number,created_at,status,payment_status,tracking_code,total,order_items(id,name,options,image_url,unit_price,quantity)")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw new Error(error.message);
@@ -120,6 +121,7 @@ function AccountPage() {
                     <div className="text-right">
                       <p className="font-medium">{ORDER_STATUS_LABEL[o.status] ?? o.status}</p>
                       <p className="text-xs text-muted-foreground">Pagamento: {PAYMENT_STATUS_LABEL[o.payment_status] ?? o.payment_status}</p>
+                      {o.tracking_code && <p className="text-xs text-muted-foreground">Rastreio: <span className="font-mono">{o.tracking_code}</span></p>}
                     </div>
                   </div>
                   <ul className="divide-y divide-border px-5">
